@@ -40,6 +40,8 @@ class TreeNode:
         """
 
         # structure information
+        self._action = action
+
         self._parent = parent
         self._children = dict()                 # a map from action to TreeNode
 
@@ -53,8 +55,6 @@ class TreeNode:
             assert prehistory is None
 
         # state information
-        self._action = action
-
         self._Q = 0
         self._u = 0
         self.n_visits = 0
@@ -66,12 +66,20 @@ class TreeNode:
         self._available_actions = available_actions
 
         # api for evaluation function
-        self._eval = None
+        self.eval = None if self._parent is None else self._parent.eval
+
+    @property
+    def children(self):
+        """
+        Return a list of children nodes.
+        """
+
+        return self._children.values()
 
     @property
     def available_actions(self):
         """
-        return a map from the currently available actions to their remaining counts.
+        Return a map from the currently available actions to their remaining counts.
         """
 
         if self._available_actions is not None:
@@ -83,7 +91,7 @@ class TreeNode:
     @property
     def terminate_limit(self):
         """
-        return the terminate condition beyond which the simulation will terminated.
+        Return the terminate condition beyond which the simulation will terminated.
         """
 
         return self._limit if self._limit is not None else self._refresh_limit()
@@ -91,7 +99,7 @@ class TreeNode:
     @property
     def cost(self):
         """
-        return the cost dictionary of each action.
+        Return the cost dictionary of each action.
         """
 
         return self._cost if self._cost is not None else self._refresh_cost()
@@ -99,7 +107,7 @@ class TreeNode:
     @property
     def history(self):
         """
-        return the history of actions (states) along the searching path.
+        Return the history of actions (states) along the searching path.
         """
 
         if self.is_root():
@@ -110,7 +118,7 @@ class TreeNode:
     @property
     def v(self):
         """
-        return the cumulative cost along the searching path.
+        Return the cumulative cost along the searching path.
         """
 
         return 0 if self.is_root() else self._refesh_v()
@@ -127,21 +135,38 @@ class TreeNode:
     @property
     def score(self):
         """
-        return the reward acquired before current node.
+        Return the reward acquired before current node.
         """
 
-        assert inspect.isfunction(self._eval)
-        return self._eval(self.history[:-1])
+        assert inspect.isfunction(self.eval)
+        return self.eval(self.history[:-1])
 
     def register_eval(self, func):
         """
-        register a function as self's eval function.
+        Register a function as self's eval function.
 
         :param func: a handle of a func
         """
 
         assert inspect.isfunction(func)
-        self._eval = func
+        self.eval = func
+
+    def reset(self):
+        """
+        Reset the status as a newly expanded node.
+        """
+
+        self._children = dict()
+        self._Q = 0
+        self._u = 0
+        self.n_visits = 0
+
+    def as_root(self):
+        """
+        Reset the parents node as None so the current node will be treated as a root node in beam search steps.
+        """
+
+        self._parent = None
 
     def expand(self):
         """
@@ -164,7 +189,10 @@ class TreeNode:
         :return: next best node according to uct
         """
 
-        return max(self._children.values(), key=lambda act_node: act_node.uct)
+        candidates = self._children.values()
+        random.shuffle(candidates)
+
+        return max(candidates, key=lambda act_node: act_node.uct)
 
     def update(self, leaf_reward, c_puct=math.sqrt(0.5)):
         """
@@ -292,7 +320,7 @@ def mcts(root: TreeNode, options: Dict) -> List:
 
     # set up containers and also value monitor for result
     current_min = -math.inf
-    result = set()
+    result = set()                      # a set of tuples (list of choices, score)
 
     # launch the trailing process
     for _ in tqdm.trange(turns, dynamic_ncols=True, desc='Trails'):

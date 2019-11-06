@@ -1,7 +1,7 @@
 """
 This file implements the Monte Carlo Tree Search (MCTS) for optimal strategy search.
 
-The MCTS algorithm here is based on junxiaosong's implementation
+The MCTS algorithms here is based on junxiaosong's implementation
 (https://github.com/junxiaosong/AlphaZero_Gomoku/blob/master/mcts_pure.py)
 and tobegit3hub's implementation
 (https://github.com/tobegit3hub/ml_implementation/blob/master/monte_carlo_tree_search/mcst_example.py)
@@ -13,7 +13,6 @@ import math
 import copy
 import random
 import tqdm
-import inspect
 from typing import *
 
 
@@ -65,8 +64,18 @@ class TreeNode:
         self._limit = limit
         self._available_actions = available_actions
 
-        # api for evaluation function
-        self.eval = None if self._parent is None else self._parent.eval
+        # api for functions
+        self.eval = None if self.is_root() else self._parent.eval
+        self.refresh_cost = None if self.is_root() else self._parent.refresh_cost
+        self.refresh_limit = None if self.is_root() else self._parent.refresh_limit
+        self.refresh_v = None if self.is_root() else self._parent.refresh_v
+        self.refresh_available = None if self.is_root() else self._parent.refresh_available
+
+        self.arg_count = {'eval':               1,
+                          'refresh_cost':       2,
+                          'refresh_limit':      2,
+                          'refresh_v':          2,
+                          'refresh_available':  2}
 
     @property
     def children(self):
@@ -81,6 +90,9 @@ class TreeNode:
         """
         Return a map from the currently available actions to their remaining counts.
         """
+
+        if self._action == '*STOP*':
+            return {}
 
         if self._available_actions is not None:
             assert '*STOP*' in self._available_actions
@@ -121,7 +133,7 @@ class TreeNode:
         Return the cumulative cost along the searching path.
         """
 
-        return 0 if self.is_root() else self._refesh_v()
+        return 0 if self.is_root() else self._refresh_v()
 
     @property
     def uct(self):
@@ -138,18 +150,21 @@ class TreeNode:
         Return the reward acquired before current node.
         """
 
-        assert inspect.isfunction(self.eval)
-        return self.eval(self.history[:-1])
+        assert hasattr(self.eval, '__call__') and self.eval.__call__.__code__.co_argcount == 1
+        return self.eval(self._parent)
 
-    def register_eval(self, func):
+    def register(self, func_name, func):
         """
-        Register a function as self's eval function.
+        Register a function as self's method.
 
+        :param func_name: name of the method to be overwrite
         :param func: a handle of a func
         """
 
-        assert inspect.isfunction(func)
-        self.eval = func
+        assert func_name in self.arg_count
+        assert hasattr(func, '__call__') and func.__call__.__code__.co_argcount == self.arg_count[func_name]
+
+        setattr(self, func_name, func)
 
     def reset(self):
         """
@@ -255,7 +270,6 @@ class TreeNode:
 
         return self.available_actions == {} or self.v > self.terminate_limit or self._action == '*STOP*'
 
-    # overwritable methods
     def _refresh_cost(self):
         """
         This function should define the rule to update the cost of each commodity. By default there is no specific rule.
@@ -263,7 +277,11 @@ class TreeNode:
         :return: updated cost of each commodity
         """
 
-        return self._parent.cost
+        if self.refresh_cost is None:
+            return self._parent.cost
+        else:
+            assert hasattr(self.refresh_cost, '__call__') and self.refresh_cost.__call__.__code__.co_argcount == 2
+            return self.refresh_cost(self._parent, self._action)
 
     def _refresh_limit(self):
         """
@@ -272,16 +290,24 @@ class TreeNode:
         :return: updated termination condition
         """
 
-        return self._parent.terminate_limit
+        if self.refresh_limit is None:
+            return self._parent.terminate_limit
+        else:
+            assert hasattr(self.refresh_cost, '__call__') and self.refresh_cost.__call__.__code__.co_argcount == 2
+            return self.refresh_limit(self._parent, self._action)
 
-    def _refesh_v(self):
+    def _refresh_v(self):
         """
         This function should define the rule to update the cumulative cost value. By default there is no specific rule.
 
         :return: updated cumulative cost value
         """
 
-        return self._parent.v + self.cost[self._action]
+        if self.refresh_v is None:
+            return self._parent.v + self.cost[self._action]
+        else:
+            assert hasattr(self.refresh_v, '__call__') and self.refresh_v.__call__.__code__.co_argcount == 2
+            return self.refresh_limit(self._parent, self._action)
 
     def _refresh_available(self):
         """
@@ -290,13 +316,18 @@ class TreeNode:
         :return: current actions available and their remaining counts
         """
 
-        available_actions = copy.copy(self._parent.available_actions)
-        available_actions[self._action] -= 1
+        if self.refresh_available is None:
+            available_actions = copy.copy(self._parent.available_actions)
+            available_actions[self._action] -= 1
 
-        if not available_actions[self._action]:
-            _ = available_actions.pop(self._action)
+            if not available_actions[self._action]:
+                _ = available_actions.pop(self._action)
 
-        return available_actions
+            return available_actions
+        else:
+            assert hasattr(self.refresh_available, '__call__') \
+                   and self.refresh_available.__call__.__code__.co_argcount == 2
+            return self.refresh_available(self._parent, self._action)
 
 
 def mcts(root: TreeNode, options: Dict) -> List:
@@ -306,7 +337,7 @@ def mcts(root: TreeNode, options: Dict) -> List:
     stead of the expanded node, since there is no interactive gaming scene in such background and thus the state of the
     decadents can be recorded to save computation.
 
-    For the traditional MCTS edition with beam search algorithm, see bs.py
+    For the traditional MCTS edition with beam search algorithms, see bs.py
 
     :param root: the given root node
     :param options: a dict containing the MCTS process settings

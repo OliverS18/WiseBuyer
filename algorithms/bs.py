@@ -11,7 +11,7 @@ from .mcts import TreeNode
 from typing import *
 
 
-def _mcts_step(root: TreeNode, turns: int, bar_options: Dict):
+def _mcts_step(root: TreeNode, turns: int, bar_options: Dict) -> bool:
     if root.is_terminated():
         return True
 

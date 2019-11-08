@@ -8,6 +8,7 @@ from typing import *
 import numpy as np
 
 from algorithms.mcts import TreeNode
+from .discount import Discount
 
 
 class Reward:
@@ -17,11 +18,11 @@ class Reward:
 
     def __init__(self, original_discount: Dict, want_score: Dict, price: Dict, budget: int):
         """
-        Instantiate a reward calculator recording information relevant to commercials.
+        Instantiate a reward calculator recording information relevant to commodities.
 
-        :param original_discount: the discount proposed w.r.t. each commercial, in currency (instead of percentage)
-        :param want_score: a map from commercial to a subjective desiring score (1 ~ 5)
-        :param price: a dict mapping from the name of commercials to their prices (discounted respectively but not
+        :param original_discount: the discount proposed w.r.t. each commodity, in currency (instead of percentage)
+        :param want_score: a map from commodity to a subjective desiring score (1 ~ 5)
+        :param price: a dict mapping from the name of commodities to their prices (haven't discounted respectively or
             couponed overall)
         :param budget: the overall budget
         """
@@ -41,6 +42,35 @@ class Reward:
         """
 
         raise NotImplementedError
+
+    def summarize(self, strategies: List[Tuple], calculator: Discount) -> List[Tuple]:
+        """
+        This method enriched the information given the strategies deduced by algorithms.
+
+        :param strategies: a list of strategies. each item within the list should follow the format as:
+            ([commodity_name], strategy_score)
+        :param calculator: a discount calculator object to be called to acquire the total cost of the strategies
+
+        :return: a list with each item of which conforms to as follows:
+            ([commodity_name], strategy_score, summed_want_score, total_discount(in percentage), total_cost)
+        """
+
+        enriched = list()
+        for strategy, score in strategies:
+            cost = calculator.sum(strategy)
+
+            want = 0
+            original_price = 0
+
+            for commodity in strategy:
+                want += self.want[commodity]
+                original_price += self.price[commodity]
+
+            discount = (cost - original_price) / original_price
+
+            enriched.append((strategy, score, want, discount, cost))
+
+        return enriched
 
 
 class MeanAveragedWant(Reward):
@@ -83,6 +113,7 @@ class MeanAveragedWant(Reward):
         choices = node.history
 
         want = np.array([self.want[choice] for choice in choices])
+        want = want / np.max(want)
         original_discount = np.array([self.discount[choice] for choice in choices])
 
         original_price = sum([self.price[choice] for choice in choices])
@@ -97,6 +128,3 @@ class MeanAveragedWant(Reward):
         remain /= self.budget
 
         return float(np.sqrt((aw**2 + self.lambd * remain**2) / (1 + self.lambd)))
-
-
-

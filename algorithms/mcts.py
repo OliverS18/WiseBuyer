@@ -47,9 +47,6 @@ class TreeNode:
         # check validation
         if self.is_root():
             assert action is None
-
-            for args in [available_actions, cost, limit]:
-                assert args is not None
         else:
             assert prehistory is None
 
@@ -60,9 +57,9 @@ class TreeNode:
 
         # temps passed to properties
         self._prehistory = prehistory
-        self._cost = cost
-        self._limit = limit
-        self._available_actions = available_actions
+        self._cost = cost or dict()
+        self._limit = limit or math.inf
+        self._available_actions = available_actions or dict()
 
         # api for functions
         self.eval = None if self.is_root() else self._parent.eval
@@ -307,7 +304,7 @@ class TreeNode:
             return self._parent.v + self.cost[self._action]
         else:
             assert hasattr(self.refresh_v, '__call__') and self.refresh_v.__call__.__code__.co_argcount == 2
-            return self.refresh_limit(self._parent, self._action)
+            return self.refresh_v(self._parent, self._action)
 
     def _refresh_available(self):
         """

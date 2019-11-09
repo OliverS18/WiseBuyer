@@ -68,7 +68,7 @@ class Reward:
                 want += self.want[commodity]
                 original_price += self.price[commodity]
 
-            discount = (cost - original_price) / original_price
+            discount = 1 - (original_price - cost) / original_price
 
             enriched.append((strategy, score, want, discount, cost))
 
@@ -77,7 +77,7 @@ class Reward:
 
 class MeanAveragedWant(Reward):
     """
-    A reward considering total cost, total discount and total want。
+    A reward considering total cost, total discount and total want.
 
     The want scores are first weighted averaged by the corresponding discount, and then the result is square-meaned with
     the term of normalized budget remain. i.e.
@@ -103,6 +103,8 @@ class MeanAveragedWant(Reward):
         super().__init__(*args, **kwargs)
         self.lambd = lambd
 
+        self.max_want = np.max(np.array(list(self.want.values())))
+
     def __call__(self, node: Optional[TreeNode]) -> float:
         if node is None:
             return 0
@@ -115,7 +117,7 @@ class MeanAveragedWant(Reward):
         choices = node.history
 
         want = np.array([self.want[choice] for choice in choices])
-        want = want / np.max(want)
+        want = want / self.max_want
         original_discount = np.array([self.discount[choice] for choice in choices])
 
         original_price = sum([self.price[choice] for choice in choices])
@@ -130,3 +132,109 @@ class MeanAveragedWant(Reward):
         remain /= self.budget
 
         return float(np.sqrt((aw**2 + self.lambd * remain**2) / (1 + self.lambd)))
+
+
+class MeanReverseAveragedDiscount(MeanAveragedWant):
+    """
+    A reward considering total cost, total discount and total want. This reward is the advance of MAW, solving the
+    problem that only the most wanted commodity will be chosen.
+
+    The discount ratio is first weighted averaged by reverse want (5 by default - want), and then the result is
+    square-meaned with the term of normalized budget remain. i.e.
+
+    reward = √[( [(∑ discount × reverse_want) ÷ ∑ reverse_want]^2 + [(budget - total_cost) ÷ budget]^2 ) ÷ 2]
+
+    for further adapting, a hyperparameter λ to leverage the impact of total cost (balance between frugality and
+    enjoyment) as:
+
+    reward = √[( [(∑ discount × reverse_want) ÷ ∑ reverse_want]^2 + λ × [(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
+    """
+
+    def __call__(self, node: Optional[TreeNode]) -> float:
+        if node is None:
+            return 0
+
+        remain = self.budget - node.v
+        if remain < 0:
+            return 0
+
+        # prepare necessary data
+        choices = node.history
+
+        want = np.array([self.want[choice] for choice in choices])
+        reverse_want = 1 - want / self.max_want
+
+        original_discount = np.array([self.discount[choice] for choice in choices])
+        original_price = np.array([self.price[choice] for choice in choices])
+
+        original_total = sum([self.price[choice] for choice in choices])
+        coupon_discount = original_total - (self.budget - remain)
+
+        final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
+        final_discount = final_discount / original_price
+
+        # calculate the RAD
+        rad = (reverse_want * final_discount / (reverse_want.sum() + 1e-4)).sum()
+
+        # normalize remain
+        remain /= self.budget
+
+        return float(np.sqrt((rad**2 + self.lambd * remain**2) / (1 + self.lambd)))
+
+
+class MeanAveragedHarmony(MeanAveragedWant):
+    """
+    A reward considering total cost, total discount and total want.
+    This reward combines the two rewards mentioned above to avoid the model to output either most want strategies or
+    most discounted strategies
+
+    The want scores are first weighted by the corresponding discount but normalized by both want and discount, and then
+    the result is square-meaned with the term of normalized budget remain. i.e.
+
+    reward = √[( [(∑ discount × want) ÷ ∑ (discount + want)]^2 + [(budget - total_cost) ÷ budget]^2 ) ÷ 2]
+
+    for further adapting, a hyperparameter λ to leverage the impact of total cost (balance between frugality and
+    enjoyment) as:
+
+    reward = √[( [(∑ discount' × want) ÷ ∑ (discount' + want)]^2 + λ × [(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
+
+    also here, the discount is normalized by its max value respectively to reduce the intrinsic difference of
+    impact.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        discount = np.array(list(self.discount.values()))
+        price = np.array(list(self.price.values()))
+
+        self.max_discount = np.max(discount / price)
+
+    def __call__(self, node: Optional[TreeNode]) -> float:
+        if node is None:
+            return 0
+
+        remain = self.budget - node.v
+        if remain < 0:
+            return 0
+
+        # prepare necessary data
+        choices = node.history
+
+        want = np.array([self.want[choice] for choice in choices])
+        want = want / self.max_want
+        original_discount = np.array([self.discount[choice] for choice in choices])
+
+        original_price = np.array([self.price[choice] for choice in choices])
+        coupon_discount = np.sum(original_price) - (self.budget - remain)
+
+        final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
+        final_discount = final_discount / original_price / self.max_discount
+
+        # calculate the AH
+        ah = (want * final_discount / (want + final_discount)).sum()
+
+        # normalize remain
+        remain /= self.budget
+
+        return float(np.sqrt((ah**2 + self.lambd * remain**2) / (1 + self.lambd)))

@@ -25,9 +25,9 @@ def _mcts_step(root: TreeNode, turns: int, bar_options: Dict) -> bool:
 
         update_root = current
         while not current.is_fully_expanded():
-            current = current.expand()
+            current.expand()
         else:
-            search_root = current
+            search_root = current.select()
 
         current = search_root
         while not current.is_terminated():
@@ -52,7 +52,7 @@ def beam_search(root: TreeNode, options: Dict) -> List:
 
     # restore some settings
     turns_per_step = options.get('turns', 100)
-    max_n_actions = options.get('max_n_actions', 30)
+    max_n_actions = options.get('max_n_actions', 'inf')
 
     beam_size = options.get('beam_size', 10)
     top_k = options.get('top_k', 10)

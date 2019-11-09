@@ -19,7 +19,11 @@ def load_config() -> EasyDict:
     """
 
     parser = configparser.ConfigParser()
-    options = parser.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'configs', _CONFIG_NAME))
+    parser.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'configs', _CONFIG_NAME))
+
+    options = dict(parser)
+    for section in options:
+        options[section] = dict(options[section])
 
     return EasyDict(options)
 

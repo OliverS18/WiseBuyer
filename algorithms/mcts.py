@@ -57,9 +57,9 @@ class TreeNode:
 
         # temps passed to properties
         self._prehistory = prehistory
-        self._cost = cost or dict()
+        self._cost = cost
         self._limit = limit or math.inf
-        self._available_actions = available_actions or dict()
+        self._available_actions = available_actions
 
         # api for functions
         self.eval = None if self.is_root() else self._parent.eval
@@ -103,7 +103,7 @@ class TreeNode:
         Return the terminate condition beyond which the simulation will terminated.
         """
 
-        return self._limit if self._limit is not None else self._refresh_limit()
+        return min(self._limit, self._refresh_limit()) if not self.is_root() else self._limit
 
     @property
     def cost(self):
@@ -147,7 +147,7 @@ class TreeNode:
         Return the reward acquired before current node.
         """
 
-        assert hasattr(self.eval, '__call__') and self.eval.__call__.__code__.co_argcount == 1
+        assert hasattr(self.eval, '__call__') and self.eval.__call__.__code__.co_argcount == 2
         return self.eval(self._parent)
 
     def register(self, func_name, func):
@@ -159,7 +159,7 @@ class TreeNode:
         """
 
         assert func_name in self.arg_count
-        assert hasattr(func, '__call__') and func.__call__.__code__.co_argcount == self.arg_count[func_name]
+        assert hasattr(func, '__call__') and func.__call__.__code__.co_argcount == self.arg_count[func_name] + 1
 
         setattr(self, func_name, func)
 
@@ -201,7 +201,7 @@ class TreeNode:
         :return: next best node according to uct
         """
 
-        candidates = self._children.values()
+        candidates = list(self._children.values())
         random.shuffle(candidates)
 
         return max(candidates, key=lambda act_node: act_node.uct)
@@ -221,7 +221,7 @@ class TreeNode:
         self.n_visits += 1
 
         # Update u
-        self._u = c_puct * math.sqrt(math.log(self._parent.n_visits + 1) / self.n_visits)
+        self._u = 0 if self.is_root() else c_puct * math.sqrt(math.log(self._parent.n_visits + 1) / self.n_visits)
 
     def update_all(self, leaf_reward=None):
         """
@@ -234,7 +234,7 @@ class TreeNode:
         leaf_reward = leaf_reward or self.score
 
         # If it is not root, this node's parent should be updated first.
-        if self._parent:
+        if self._parent is not None:
             self._parent.update_all(leaf_reward)
 
         self.update(leaf_reward)
@@ -277,7 +277,7 @@ class TreeNode:
         if self.refresh_cost is None:
             return self._parent.cost
         else:
-            assert hasattr(self.refresh_cost, '__call__') and self.refresh_cost.__call__.__code__.co_argcount == 2
+            assert hasattr(self.refresh_cost, '__call__') and self.refresh_cost.__call__.__code__.co_argcount == 3
             return self.refresh_cost(self._parent, self._action)
 
     def _refresh_limit(self):
@@ -290,7 +290,7 @@ class TreeNode:
         if self.refresh_limit is None:
             return self._parent.terminate_limit
         else:
-            assert hasattr(self.refresh_cost, '__call__') and self.refresh_cost.__call__.__code__.co_argcount == 2
+            assert hasattr(self.refresh_cost, '__call__') and self.refresh_cost.__call__.__code__.co_argcount == 3
             return self.refresh_limit(self._parent, self._action)
 
     def _refresh_v(self):
@@ -303,7 +303,7 @@ class TreeNode:
         if self.refresh_v is None:
             return self._parent.v + self.cost[self._action]
         else:
-            assert hasattr(self.refresh_v, '__call__') and self.refresh_v.__call__.__code__.co_argcount == 2
+            assert hasattr(self.refresh_v, '__call__') and self.refresh_v.__call__.__code__.co_argcount == 3
             return self.refresh_v(self._parent, self._action)
 
     def _refresh_available(self):
@@ -323,7 +323,7 @@ class TreeNode:
             return available_actions
         else:
             assert hasattr(self.refresh_available, '__call__') \
-                   and self.refresh_available.__call__.__code__.co_argcount == 2
+                   and self.refresh_available.__call__.__code__.co_argcount == 3
             return self.refresh_available(self._parent, self._action)
 
 
@@ -348,11 +348,12 @@ def mcts(root: TreeNode, options: Dict) -> List:
 
     # set up containers and also value monitor for result
     current_min = -math.inf
-    result = set()                      # a set of tuples (list of choices, score)
+    result = dict()                      # a map from (list of choices,) to score
 
     # launch the trailing process
     for _ in tqdm.trange(turns, dynamic_ncols=True, desc='Trails'):
         current = root
+
         while not current.is_terminated():
             if current.is_fully_expanded():
                 current = current.select()
@@ -361,24 +362,24 @@ def mcts(root: TreeNode, options: Dict) -> List:
 
         current.update_all()
 
-        if current.score <= current_min:
+        if current.score <= current_min or tuple(sorted(current.history[:-1])) in result:
             continue
         else:
             if len(result) < top_k:
                 current_min = math.inf if current_min == -math.inf else current_min
 
-                result.add((current.history[:-1], current.score))
+                result[tuple(sorted(current.history[:-1]))] = current.score
                 current_min = min(current_min, current.score)
             else:
                 for solution in result:
-                    if solution[1] == current_min:
-                        result.remove(solution)
+                    if result[solution] == current_min:
+                        _ = result.pop(solution)
                         break
 
-                result.add((current.history[:-1], current.score))
+                result[tuple(sorted(current.history[:-1]))] = current.score
 
                 current_min = math.inf
                 for solution in result:
-                    current_min = min(current_min, solution[1])
+                    current_min = min(current_min, result[solution])
 
-    return sorted(list(result), key=lambda item: item[1], reverse=True)
+    return sorted(list(result.items()), key=lambda item: item[1], reverse=True)

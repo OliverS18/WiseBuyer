@@ -5,8 +5,8 @@ This file is the main entrance API of the service.
 
 import os
 
-import io
-from io import cfg
+import oi
+from oi import cfg
 import algorithms as algos
 import rules
 
@@ -18,7 +18,7 @@ def service():
     """
 
     # parse information from cache
-    price, count, discount, want, scheme, option = io.input_json(cart_json=os.path.join(cfg.io.temp_path,
+    price, count, discount, want, scheme, option = oi.input_json(cart_json=os.path.join(cfg.io.temp_path,
                                                                                         cfg.io.cart_json),
                                                                  user_json=os.path.join(cfg.io.temp_path,
                                                                                         cfg.io.user_json))
@@ -40,4 +40,4 @@ def service():
     result = algos.algo_set[option.algorithm](root_node, option)
 
     # write the result into temp file
-    io.output_json(result, os.path.join(cfg.io.temp_path, cfg.io.output_json), scorer, discounter)
+    oi.output_json(result, os.path.join(cfg.io.temp_path, cfg.io.output_json), scorer, discounter)

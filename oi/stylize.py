@@ -30,7 +30,7 @@ def input_json(cart_json: str, user_json: str) -> Tuple[Dict, Dict, Dict, Dict, 
     """
 
     cart_dict = json.load(open(cart_json))
-    want, option = json.load(open(user_json))
+    option, want = json.load(open(user_json))
 
     price = dict()
     amount = dict()
@@ -41,7 +41,9 @@ def input_json(cart_json: str, user_json: str) -> Tuple[Dict, Dict, Dict, Dict, 
         price[commodity] = data[1]
         amount[commodity] = data[2]
         discount[commodity] = data[0] - data[1]
-        scheme[commodity] = data[3]
+        scheme[commodity] = tuple(data[3])
+
+    amount['*STOP*'] = 1
 
     return price, amount, discount, want, scheme, EasyDict(option)
 
@@ -58,4 +60,4 @@ def output_json(strategies: List[Tuple], cache_path: str, commentator: Reward, c
     """
 
     enriched = commentator.summarize(strategies, calculator)
-    json.dump(enriched, open(cache_path, 'w'))
+    json.dump(enriched, open(cache_path, 'w', encoding='utf-8'), ensure_ascii=False)

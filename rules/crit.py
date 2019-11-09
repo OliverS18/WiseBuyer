@@ -16,7 +16,7 @@ class Reward:
     The base class for all rewards defining basic API and fundamental logic.
     """
 
-    def __init__(self, original_discount: Dict, want_score: Dict, price: Dict, budget: int):
+    def __init__(self, original_discount: Dict, want_score: Dict, price: Dict, budget: int, *args, **kwargs):
         """
         Instantiate a reward calculator recording information relevant to commodities.
 
@@ -25,6 +25,8 @@ class Reward:
         :param price: a dict mapping from the name of commodities to their prices (haven't discounted respectively or
             couponed overall)
         :param budget: the overall budget
+        :param args: not used positional argument making compatible among descendants
+        :param kwargs: not used keyword argument making compatible among descendants
         """
 
         self.discount = original_discount

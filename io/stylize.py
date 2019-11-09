@@ -10,23 +10,23 @@ from easydict import EasyDict
 
 from rules.crit import Reward
 from rules.discount import Discount
-from .config import cfg
 
 
-def input_json(cart_json: str, user_json: str) -> Tuple[Dict, Dict, Dict, Dict, EasyDict]:
+def input_json(cart_json: str, user_json: str) -> Tuple[Dict, Dict, Dict, Dict, Dict, EasyDict]:
     """
     This function takes in all the information represented as json serialized strings, and then distribute them into
     multiple dicts used in different scenario.
 
-    :param cart_json: path to a json serialized string parsed from web representing information of commodities.
+    :param cart_json: path to a json path parsed from web representing information of commodities.
         a typical item of the dict carried by the json string would be like:
-        {commodity_name: [original_price, discounted_price, preferred_amount]}.
-    :param user_json: path to a json serialized string parsed from the user interface representing user-defined arguments.
+        {commodity_name: [original_price, discounted_price, preferred_amount, coupon_scheme]}.
+    :param user_json: path to a json path parsed from the user interface representing user-defined arguments.
         there would be two part forming the list carried by the json string:
         [{algorithm_options_name: corresponding_value}, {commodity_name: want_score}]
 
-    :return: a list of dict containing price, desired amount, commodity-wise discount in currency (rather than
-        percentage), want score as well as the options for algorithms (as easydict).
+    :return: a list of dict containing discounted price, desired amount, commodity-wise discount in currency (rather
+        than percentage), want score, coupon_scheme of each commodity as well as the options for algorithms
+        (as easydict).
     """
 
     cart_dict = json.load(open(cart_json))
@@ -35,13 +35,15 @@ def input_json(cart_json: str, user_json: str) -> Tuple[Dict, Dict, Dict, Dict, 
     price = dict()
     amount = dict()
     discount = dict()
+    scheme = dict()
 
     for commodity, data in cart_dict.items():
         price[commodity] = data[1]
         amount[commodity] = data[2]
         discount[commodity] = data[0] - data[1]
+        scheme[commodity] = data[3]
 
-    return price, amount, discount, want, EasyDict(option)
+    return price, amount, discount, want, scheme, EasyDict(option)
 
 
 def output_json(strategies: List[Tuple], cache_path: str, commentator: Reward, calculator: Discount):
@@ -56,4 +58,4 @@ def output_json(strategies: List[Tuple], cache_path: str, commentator: Reward, c
     """
 
     enriched = commentator.summarize(strategies, calculator)
-    json.dump(enriched, open(os.path.join(cfg.io.temp_path, cache_path, 'w')))
+    json.dump(enriched, open(cache_path, 'w'))

@@ -12,12 +12,14 @@ class Discount:
     This class defines the discount rule and reserve a __call__ API.
     """
 
-    def __init__(self, price: Dict, modifier: Optional[Callable[[Dict, List], Dict]] = None):
+    def __init__(self, price: Dict, modifier: Optional[Callable[[Dict, List], Dict]] = None, *args, **kwargs):
         """
         Instantiate an object recording the commodities' price info.
 
         :param price: a dict mapping from the name of commodities to their prices.
         :param modifier: a function taking original prices and bought commodities as input and update the price info.
+        :param args: not used positional argument making compatible among descendants
+        :param kwargs: not used keyword argument making compatible among descendants
         """
 
         self.price = price
@@ -45,7 +47,6 @@ class Discount:
 
         pseudo_node = TreeNode(prehistory=choices)
         return self(pseudo_node, '*STOP*')
-
 
 
 class SingleTmallD11Coupon(Discount):

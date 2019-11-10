@@ -60,6 +60,7 @@ class TreeNode:
         self._cost = cost
         self._limit = limit or math.inf
         self._available_actions = available_actions
+        self._num_actions = None
 
         # api for functions
         self.eval = None if self.is_root() else self._parent.eval
@@ -178,6 +179,11 @@ class TreeNode:
         Reset the parents node as None so the current node will be treated as a root node in beam search steps.
         """
 
+        self._available_actions = self.available_actions
+        self._prehistory = self.history
+        self._cost = self.cost
+        self._limit = self.terminate_limit
+
         self._parent = None
 
     def expand(self):
@@ -258,7 +264,10 @@ class TreeNode:
         Check if fully expanded (i.e. number of children equals to number of actions available).
         """
 
-        return len(self._children) == len(self.available_actions)
+        if self._num_actions is None:
+            self._num_actions = len(self.available_actions)
+
+        return len(self._children) == self._num_actions
 
     def is_terminated(self):
         """

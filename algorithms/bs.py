@@ -66,7 +66,9 @@ def beam_search(root: TreeNode, options: Dict) -> List:
     step = 0
 
     # launch the searching process
-    with tqdm.tqdm(total=max_n_actions if max_n_actions != math.inf else None, dynamic_ncols=True, desc='Step') as bar:
+    with tqdm.tqdm(total=max_n_actions if max_n_actions != math.inf else None,
+                   dynamic_ncols=True,
+                   desc='Overall') as bar:
         # launch the first step
         all_finished = _mcts_step(root, turns_per_step, {'offset': 2, 'title': 'First step'})
 

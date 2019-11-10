@@ -68,7 +68,7 @@ class Reward:
                 want += self.want[commodity]
                 original_price += self.price[commodity]
 
-            discount = 1 - (original_price - cost) / original_price
+            discount = 1 - (original_price - cost) / (original_price + 1e-4)
 
             enriched.append((strategy, score, want, discount, cost))
 
@@ -90,20 +90,29 @@ class MeanAveragedWant(Reward):
     reward = √[( [(∑ discount × want) ÷ ∑ discount]^2 + λ × [(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
     """
 
-    def __init__(self, lambd: float, *args, **kwargs):
+    def __init__(self, lambd: float, count: Dict, *args, **kwargs):
         """
         Instantiate the reward acquiring logic introduced above.
 
         :param lambd: the hyperparameter representing the relevant importance of budget remaining. higher means more
             important.
+        :param count: the number to bought of each commodity in the shopping cart
         :param args: positional arguments passed to the parent class
         :param kwargs: keyword arguments passed to the parent class
         """
 
         super().__init__(*args, **kwargs)
         self.lambd = lambd
+        assert lambd >= 0
 
         self.max_want = np.max(np.array(list(self.want.values())))
+
+        total_price = 0
+        for commodity in count:
+            if commodity != '*STOP*':
+                total_price += count[commodity] * (self.price[commodity] - self.discount[commodity])
+
+        self.avg_price = total_price / sum(count.values())
 
     def __call__(self, node: Optional[TreeNode]) -> float:
         if node is None:
@@ -130,6 +139,7 @@ class MeanAveragedWant(Reward):
 
         # normalize remain
         remain /= self.budget
+        remain *= (self.budget - remain) / self.avg_price
 
         return float(np.sqrt((aw**2 + self.lambd * remain**2) / (1 + self.lambd)))
 
@@ -178,6 +188,7 @@ class MeanReverseAveragedDiscount(MeanAveragedWant):
 
         # normalize remain
         remain /= self.budget
+        remain *= (self.budget - remain) / self.avg_price
 
         return float(np.sqrt((rad**2 + self.lambd * remain**2) / (1 + self.lambd)))
 
@@ -236,5 +247,63 @@ class MeanAveragedHarmony(MeanAveragedWant):
 
         # normalize remain
         remain /= self.budget
+        remain *= (self.budget - remain) / self.avg_price
 
         return float(np.sqrt((ah**2 + self.lambd * remain**2) / (1 + self.lambd)))
+
+
+class MeanAveragedOverallHarmony(MeanAveragedWant):
+    """
+    A reward considering total cost, total discount and total want.
+    Instead of considering the commodity-wise harmonic average, this class consider the harmonic average after the
+    whole strategy is analyzed, i.e.
+
+    reward = √[( [(∑ discount × ∑ want) ÷  (∑ discount + ∑ want)]^2 + [(budget - total_cost) ÷ budget]^2 ) ÷ 2]
+
+    for further adapting, a hyperparameter λ to leverage the impact of total cost (balance between frugality and
+    enjoyment) as:
+
+    reward = √[( [(∑ discount' × ∑ want) ÷ (∑ discount' + ∑ want)]^2 + λ × [(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
+
+    also here, the discount is normalized by its max value respectively to reduce the intrinsic difference of
+    impact.
+    """
+
+    def __call__(self, node: Optional[TreeNode]) -> float:
+        if node is None:
+            return 0
+
+        remain = self.budget - node.v
+        if remain < 0:
+            return 0
+
+        # prepare necessary data
+        choices = node.history
+
+        want = np.array([self.want[choice] for choice in choices])
+        want = want / self.max_want
+
+        original_discount = np.array([self.discount[choice] for choice in choices])
+
+        original_price = np.array([self.price[choice] for choice in choices])
+        coupon_discount = np.sum(original_price) - (self.budget - remain)
+
+        total_price = np.sum(original_price)
+        price_list = np.array(list(self.price.values()))
+        equivalent_num = total_price / price_list
+        equivalent_discount = np.array(list(self.discount.values())) + coupon_discount / (equivalent_num + 1e-4)
+        equivalent_discount = equivalent_discount / price_list
+
+        max_discount = np.max(equivalent_discount)
+
+        final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
+        final_discount = final_discount / original_price / max_discount
+
+        # calculate the AOH
+        aoh = np.sum(want) * np.sum(final_discount) / (np.sum(want) + np.sum(final_discount) + 1e-4)
+
+        # normalize remain
+        remain /= self.budget
+        remain *= (self.budget - remain) / self.avg_price
+
+        return float(np.sqrt((aoh**2 + self.lambd * remain**2) / (1 + self.lambd)))

@@ -212,7 +212,7 @@ class TreeNode:
 
         return max(candidates, key=lambda act_node: act_node.uct)
 
-    def update(self, leaf_reward, c_puct=math.sqrt(0.5)):
+    def update(self, leaf_reward, c_puct=math.sqrt(2.4)):
         """
         Update node values from leaf evaluation.
 
@@ -227,7 +227,7 @@ class TreeNode:
         self.n_visits += 1
 
         # Update u
-        self._u = 0 if self.is_root() else c_puct * math.sqrt(math.log(self._parent.n_visits + 1) / self.n_visits)
+        self._u = 0 if self.is_root() else c_puct * math.sqrt(2 * math.log(self._parent.n_visits + 1) / self.n_visits)
 
     def update_all(self, leaf_reward=None):
         """

@@ -8,7 +8,7 @@ from typing import *
 import numpy as np
 
 from algorithms.mcts import TreeNode
-from .discount import Discount
+from .discount import Discount, ShopwiseDiscount, SchemewiseDiscount
 
 
 class Reward:
@@ -16,7 +16,12 @@ class Reward:
     The base class for all rewards defining basic API and fundamental logic.
     """
 
-    def __init__(self, original_discount: Dict, want_score: Dict, price: Dict, budget: int, *args, **kwargs):
+    def __init__(self, original_discount: Dict,
+                 want_score: Dict,
+                 price: Dict,
+                 budget: int,
+                 discounter: Optional[Discount] = None,
+                 *args, **kwargs):
         """
         Instantiate a reward calculator recording information relevant to commodities.
 
@@ -25,6 +30,7 @@ class Reward:
         :param price: a dict mapping from the name of commodities to their prices (haven't discounted respectively or
             couponed overall)
         :param budget: the overall budget
+        :param discounter: a discount object used to provide some status information
         :param args: not used positional argument making compatible among descendants
         :param kwargs: not used keyword argument making compatible among descendants
         """
@@ -33,6 +39,8 @@ class Reward:
         self.want = want_score
         self.price = price
         self.budget = budget
+
+        self.discounter = discounter
 
     def __call__(self, node: Optional[TreeNode]) -> float:
         """
@@ -45,13 +53,12 @@ class Reward:
 
         raise NotImplementedError
 
-    def summarize(self, strategies: List[Tuple], calculator: Discount) -> List[Tuple]:
+    def summarize(self, strategies: List[Tuple]) -> List[Tuple]:
         """
         This method enriched the information given the strategies deduced by algorithms.
 
         :param strategies: a list of strategies. each item within the list should follow the format as:
             ([commodity_name], strategy_score)
-        :param calculator: a discount calculator object to be called to acquire the total cost of the strategies
 
         :return: a list with each item of which conforms to as follows:
             ([commodity_name], strategy_score, summed_want_score, total_discount(in percentage), total_cost)
@@ -59,7 +66,7 @@ class Reward:
 
         enriched = list()
         for strategy, score in strategies:
-            cost = calculator.sum(strategy)
+            cost = self.discounter.sum(strategy)
 
             want = 0
             original_price = 0
@@ -130,7 +137,7 @@ class MeanAveragedWant(Reward):
         original_discount = np.array([self.discount[choice] for choice in choices])
 
         original_price = sum([self.price[choice] for choice in choices])
-        coupon_discount = original_price - (self.budget - remain)
+        coupon_discount = original_price - np.sum(original_discount) - (self.budget - remain)
 
         final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
 
@@ -178,7 +185,7 @@ class MeanReverseAveragedDiscount(MeanAveragedWant):
         original_price = np.array([self.price[choice] for choice in choices])
 
         original_total = sum([self.price[choice] for choice in choices])
-        coupon_discount = original_total - (self.budget - remain)
+        coupon_discount = original_total - np.sum(original_discount) - (self.budget - remain)
 
         final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
         final_discount = final_discount / original_price
@@ -237,7 +244,7 @@ class MeanAveragedHarmony(MeanAveragedWant):
         original_discount = np.array([self.discount[choice] for choice in choices])
 
         original_price = np.array([self.price[choice] for choice in choices])
-        coupon_discount = np.sum(original_price) - (self.budget - remain)
+        coupon_discount = np.sum(original_price) - np.sum(original_discount) - (self.budget - remain)
 
         final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
         final_discount = final_discount / original_price / self.max_discount
@@ -252,7 +259,7 @@ class MeanAveragedHarmony(MeanAveragedWant):
         return float(np.sqrt((ah**2 + self.lambd * remain**2) / (1 + self.lambd)))
 
 
-class MeanAveragedOverallHarmony(MeanAveragedWant):
+class MeanOverallHarmonicAverage(MeanAveragedWant):
     """
     A reward considering total cost, total discount and total want.
     Instead of considering the commodity-wise harmonic average, this class consider the harmonic average after the
@@ -263,7 +270,7 @@ class MeanAveragedOverallHarmony(MeanAveragedWant):
     for further adapting, a hyperparameter λ to leverage the impact of total cost (balance between frugality and
     enjoyment) as:
 
-    reward = √[( [(∑ discount' × ∑ want) ÷ (∑ discount' + ∑ want)]^2 + λ × [(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
+    reward = √[( [(∑ discount' × ∑ want) ÷ (∑ discount' + ∑ want)]^2 + λ[(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
 
     also here, the discount is normalized by its max value respectively to reduce the intrinsic difference of
     impact.
@@ -286,7 +293,7 @@ class MeanAveragedOverallHarmony(MeanAveragedWant):
         original_discount = np.array([self.discount[choice] for choice in choices])
 
         original_price = np.array([self.price[choice] for choice in choices])
-        coupon_discount = np.sum(original_price) - (self.budget - remain)
+        coupon_discount = np.sum(original_price) - np.sum(original_discount) - (self.budget - remain)
 
         total_price = np.sum(original_price)
         price_list = np.array(list(self.price.values()))
@@ -299,11 +306,90 @@ class MeanAveragedOverallHarmony(MeanAveragedWant):
         final_discount = original_discount + coupon_discount * original_discount / original_discount.sum()
         final_discount = final_discount / original_price / max_discount
 
-        # calculate the AOH
-        aoh = np.sum(want) * np.sum(final_discount) / (np.sum(want) + np.sum(final_discount) + 1e-4)
+        # calculate the OHA
+        oha = np.sum(want) * np.sum(final_discount) / (np.sum(want) + np.sum(final_discount) + 1e-4)
 
         # normalize remain
         remain /= self.budget
         remain *= (self.budget - remain) / self.avg_price
 
-        return float(np.sqrt((aoh**2 + self.lambd * remain**2) / (1 + self.lambd)))
+        return float(np.sqrt((oha**2 + self.lambd * remain**2) / (1 + self.lambd)))
+
+
+class AdvancedMeanOverallHarmonicAverage(MeanAveragedWant):
+    """
+    A reward considering total cost, total discount and total want.
+
+    In the formula depicted as:
+
+    reward = √[( [(∑ discount' × ∑ want) ÷ (∑ discount' + ∑ want)]^2 + λ[(budget - total_cost) ÷ budget]^2 ) ÷ (1 + λ)]
+
+    The discount is now considering the different shops and schemes. i.e. only the coupon of corresponding discount
+    scheme as well as shop of the commodity will be counted in to the final discount calculation procedure. Similar
+    consideration is also taken when calculation the denominator in the normalization procedure to make the metric more
+    reasonable.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        assert isinstance(self.discounter, SchemewiseDiscount) and isinstance(self.discounter, ShopwiseDiscount)
+
+    def __call__(self, node: Optional[TreeNode]):
+        if node is None:
+            return 0
+
+        remain = self.budget - node.v
+        if remain < 0:
+            return 0
+
+        # prepare necessary data
+        choices = node.history
+
+        want = np.array([self.want[choice] for choice in choices])
+        want = want / self.max_want
+
+        # re-calculate discounts
+        original_discount = np.array([self.discount[choice] for choice in choices])
+        original_price = np.array([self.price[choice] for choice in choices])
+
+        final_discount = original_discount.astype('float')
+
+        coupon_by_scheme, _ = self.discounter.get_schemewise_coupon_and_cost(node, '*STOP*')
+        for scheme in coupon_by_scheme:
+            mask = np.array([self.discounter.schemes[choice] == scheme for choice in choices]).astype('float')
+            final_discount += (original_discount * mask) * coupon_by_scheme[scheme] / np.sum(original_discount * mask)
+
+        coupon_by_shop, _ = self.discounter.get_shopwise_coupon_and_cost(node, '*STOP*')
+        for shop in coupon_by_shop:
+            mask = np.array([self.discounter.shops[choice] == shop for choice in choices]).astype('float')
+            final_discount += (original_discount * mask) * coupon_by_shop[shop] / np.sum(original_discount * mask)
+
+        final_discount = final_discount / original_price
+
+        # normalize discounts
+        total_price = np.sum(original_price)
+        price_list = np.array(list(self.price.values()))
+        equivalent_num = total_price / price_list
+
+        equivalent_scheme_coupon = np.array([(total_price // scheme[1]) * scheme[0]
+                                             for scheme in self.discounter.schemes.values()])
+        equivalent_shop_coupon = np.array([max(filter(lambda scheme: scheme[1] <= total_price,
+                                                      shop_schemes),
+                                               key=lambda scheme: scheme[0])[0]
+                                           for shop_schemes in self.discounter.shopwise_coupon.values()])
+
+        equivalent_discount = np.array(list(self.discount.values())) \
+            + (equivalent_scheme_coupon + equivalent_shop_coupon) / (equivalent_num + 1e-4)
+        equivalent_discount = equivalent_discount / price_list
+
+        final_discount /= np.max(equivalent_discount) + 1e-4
+
+        # calculate the OHA
+        oha = np.sum(want) * np.sum(final_discount) / (np.sum(want) + np.sum(final_discount) + 1e-4)
+
+        # normalize remain
+        remain /= self.budget
+        remain *= (self.budget - remain) / self.avg_price
+
+        return float(np.sqrt((oha**2 + self.lambd * remain**2) / (1 + self.lambd)))

@@ -3,11 +3,12 @@ This file indicates the rules of e-commodity discounts by rewrite relevant metho
 """
 
 
+from abc import ABC
 from typing import *
 from algorithms.mcts import TreeNode
 
 
-class Discount:
+class Discount(ABC):
     """
     This class defines the discount rule and reserve a __call__ API.
     """
@@ -49,6 +50,107 @@ class Discount:
         return self(pseudo_node, '*STOP*')
 
 
+class SchemewiseDiscount(Discount, ABC):
+    """
+    This is the base class for all discount schemes that have a global coupon offer (which is usually in the form of
+     `save x every y`).
+    """
+
+    def __init__(self, scheme_of_commodities: Dict, *args, **kwargs):
+        """
+        Instantiate an object representing multiple discount logics simultaneously.
+
+        :param scheme_of_commodities: a mapping from commodities' name to its discount scheme (represented as tuple
+            (save, every)).
+        :param args: positional arguments passed to the parent class
+        :param kwargs: keyword arguments passed to the parent class
+        """
+
+        super().__init__(*args, **kwargs)
+
+        self.schemes = scheme_of_commodities
+        self.scheme_types = set(self.schemes.values())
+
+    def get_schemewise_coupon_and_cost(self, prev: Optional[TreeNode], action: str) -> Tuple[Dict, Dict]:
+        """
+        An API for easily getting coupon and cost of each discount scheme.
+
+        :param prev: a tree node object representing the choice status (back to last commodity selected)
+        :param action: current selected commodity
+
+        :return: two dicts mapping schemes (in representation of tuple `(save, every)`) to the total got coupons and
+            total costs respectively.
+        """
+
+        cost_by_scheme = {scheme_type: 0 for scheme_type in self.scheme_types}
+
+        if prev is not None:
+            for commodity in prev.history:
+                cost_by_scheme[self.schemes[commodity]] += self.price[commodity]
+
+        if action != '*STOP*':
+            cost_by_scheme[self.schemes[action]] += self.price[action]
+
+        coupon_by_scheme = dict()
+        for scheme_type, total in cost_by_scheme.items():
+            coupon_by_scheme[scheme_type] = (total // scheme_type[1]) * scheme_type[0]
+
+        return coupon_by_scheme, cost_by_scheme
+
+
+class ShopwiseDiscount(Discount, ABC):
+    """
+    This is the base class for all discount schemes that have coupon offers each shops (which is usually in the form of
+     `save x after reaching y`).
+    """
+
+    def __init__(self, shop_of_commodities: Dict, shopwise_coupon: Dict, *args, **kwargs):
+        """
+        Instantiate an object representing discount logics of each shop simultaneously.
+
+        :param shop_of_commodities: a mapping from commodities' name to its discount scheme (represented as tuple
+            (save, after_reach)).
+        :param args: positional arguments passed to the parent class
+        :param kwargs: keyword arguments passed to the parent class
+        """
+
+        super().__init__(*args, **kwargs)
+
+        self.shops = shop_of_commodities
+        self.shop_types = set(self.shops.values())
+
+        self.shopwise_coupon = {shop: sorted(coupons, key=lambda scheme: scheme[0])
+                                for shop, coupons in shopwise_coupon.items()}   # sort from the largest to the smallest
+
+    def get_shopwise_coupon_and_cost(self, prev: Optional[TreeNode], action: str) -> Tuple[Dict, Dict]:
+        """
+        An API for easily getting coupon and cost of each shop.
+
+        :param prev: a tree node object representing the choice status (back to last commodity selected)
+        :param action: current selected commodity
+
+        :return: two dicts mapping shop names to the total got coupons and total costs respectively.
+        """
+
+        cost_by_shop = {shop: 0 for shop in self.shop_types}
+
+        if prev is not None:
+            for commodity in prev.history:
+                cost_by_shop[self.shops[commodity]] += self.price[commodity]
+
+        if action != '*STOP*':
+            cost_by_shop[self.shops[action]] += self.price[action]
+
+        coupon_by_shop = dict()
+        for shop, total in cost_by_shop.items():
+            for scheme in self.shopwise_coupon[shop]:
+                if total >= scheme[1]:
+                    coupon_by_shop[shop] = scheme[0]
+                    break
+
+        return coupon_by_shop, cost_by_shop
+
+
 class SingleTmallD11Coupon(Discount):
     """
     This discount logic of Tmall's 11.11. Note that this class only consider one discount strategy.
@@ -81,38 +183,24 @@ class SingleTmallD11Coupon(Discount):
         return original_cost - (original_cost // self.every) * self.save
 
 
-class MultiTmallD11Coupon(Discount):
+class MultiTmallD11Coupon(SchemewiseDiscount):
     """
     The discount logic considering multiple types of strategies.
     """
 
-    def __init__(self, scheme_of_commodities: Dict, *args, **kwargs):
-        """
-        Instantiate an object representing multiple discount logics simultaneously of Tmall's 11.11.
+    def __call__(self, prev: Optional[TreeNode], action: str) -> float:
+        coupon_by_scheme, cost_by_scheme = self.get_schemewise_coupon_and_cost(prev, action)
 
-        :param scheme_of_commodities: a mapping from commodities' name to its discount scheme (represented as tuple
-            (save, every)).
-        :param args: positional arguments passed to the parent class
-        :param kwargs: keyword arguments passed to the parent class
-        """
+        return sum(cost_by_scheme.values()) - sum(coupon_by_scheme.values())
 
-        super().__init__(*args, **kwargs)
 
-        self.schemes = scheme_of_commodities
-        self.scheme_types = set(self.schemes.values())
+class ShopwiseMultiTmallD11Coupon(ShopwiseDiscount, SchemewiseDiscount):
+    """
+    The discount logic taking coupon of each shop into consideration.
+    """
 
     def __call__(self, prev: Optional[TreeNode], action: str) -> float:
-        cost_by_scheme = {scheme_type: 0 for scheme_type in self.scheme_types}
+        coupon_by_scheme, cost_by_scheme = self.get_schemewise_coupon_and_cost(prev, action)
+        coupon_by_shop, cost_by_shop = self.get_shopwise_coupon_and_cost(prev, action)
 
-        if prev is not None:
-            for commodity in prev.history:
-                cost_by_scheme[self.schemes[commodity]] += self.price[commodity]
-
-        if action != '*STOP*':
-            cost_by_scheme[self.schemes[action]] += self.price[action]
-
-        discounted = 0
-        for scheme_type, total in cost_by_scheme.items():
-            discounted += total - (total // scheme_type[1]) * scheme_type[0]
-
-        return discounted
+        return sum(cost_by_scheme.values()) - sum(coupon_by_scheme.values()) - sum(coupon_by_shop.values())

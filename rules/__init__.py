@@ -7,8 +7,9 @@ from . import discount
 from . import crit
 
 
-coupon = {'tmall': discount.MultiTmallD11Coupon}
+coupon = {'tmall': discount.ShopwiseMultiTmallD11Coupon}
 score = {'maw': crit.MeanAveragedWant,
          'mrad': crit.MeanReverseAveragedDiscount,
          'mah': crit.MeanAveragedHarmony,
-         'maoh': crit.MeanAveragedOverallHarmony}
+         'moha': crit.MeanOverallHarmonicAverage,
+         'amoha': crit.AdvancedMeanOverallHarmonicAverage}

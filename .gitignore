@@ -3,3 +3,4 @@ test*
 cache/
 configs/test*
 __pycache__
+\"

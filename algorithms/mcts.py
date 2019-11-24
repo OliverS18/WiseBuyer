@@ -1,11 +1,11 @@
 """
 This file implements the Monte Carlo Tree Search (MCTS) for optimal strategy search.
 
-The MCTS algorithms here is based on junxiaosong's implementation
+The MCTS algorithms here is implemented based on junxiaosong's script
 (https://github.com/junxiaosong/AlphaZero_Gomoku/blob/master/mcts_pure.py)
 and tobegit3hub's implementation
 (https://github.com/tobegit3hub/ml_implementation/blob/master/monte_carlo_tree_search/mcst_example.py)
-Much thanks to the author.
+Much thanks to the authors.
 """
 
 

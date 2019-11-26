@@ -66,4 +66,4 @@ def output_json(strategies: List[Tuple], cache_path: str, commentator: Reward):
     """
 
     enriched = commentator.summarize(strategies)
-    json.dump(enriched, open(cache_path, 'w', encoding='utf-8'), ensure_ascii=False)
+    json.dump(enriched, open(cache_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)

@@ -77,7 +77,8 @@ class Reward:
 
             discount = 1 - (original_price - cost) / (original_price + 1e-4)
 
-            enriched.append((strategy, score, want, discount, cost))
+            enriched.append((strategy,
+                             {'score': score, 'total want': want, 'overall discount': discount, 'total cost': cost}))
 
         return enriched
 
@@ -358,12 +359,14 @@ class AdvancedMeanOverallHarmonicAverage(MeanAveragedWant):
         coupon_by_scheme, _ = self.discounter.get_schemewise_coupon_and_cost(node, '*STOP*')
         for scheme in coupon_by_scheme:
             mask = np.array([self.discounter.schemes[choice] == scheme for choice in choices]).astype('float')
-            final_discount += (original_discount * mask) * coupon_by_scheme[scheme] / np.sum(original_discount * mask)
+            final_discount += (original_discount * mask) * coupon_by_scheme[scheme] / \
+                              (np.sum(original_discount * mask) + 1e-4)
 
         coupon_by_shop, _ = self.discounter.get_shopwise_coupon_and_cost(node, '*STOP*')
         for shop in coupon_by_shop:
             mask = np.array([self.discounter.shops[choice] == shop for choice in choices]).astype('float')
-            final_discount += (original_discount * mask) * coupon_by_shop[shop] / np.sum(original_discount * mask)
+            final_discount += (original_discount * mask) * coupon_by_shop[shop] / \
+                              (np.sum(original_discount * mask) + 1e-4)
 
         final_discount = final_discount / original_price
 
@@ -375,9 +378,9 @@ class AdvancedMeanOverallHarmonicAverage(MeanAveragedWant):
         equivalent_scheme_coupon = np.array([(total_price // scheme[1]) * scheme[0]
                                              for scheme in self.discounter.schemes.values()])
         equivalent_shop_coupon = np.array([max(filter(lambda scheme: scheme[1] <= total_price,
-                                                      shop_schemes),
+                                                      self.discounter.shopwise_coupon[self.discounter.shops[choice]]),
                                                key=lambda scheme: scheme[0])[0]
-                                           for shop_schemes in self.discounter.shopwise_coupon.values()])
+                                           for choice in self.discounter.shops.keys()])
 
         equivalent_discount = np.array(list(self.discount.values())) \
             + (equivalent_scheme_coupon + equivalent_shop_coupon) / (equivalent_num + 1e-4)

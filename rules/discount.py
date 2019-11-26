@@ -108,8 +108,7 @@ class ShopwiseDiscount(Discount, ABC):
         """
         Instantiate an object representing discount logics of each shop simultaneously.
 
-        :param shop_of_commodities: a mapping from commodities' name to its discount scheme (represented as tuple
-            (save, after_reach)).
+        :param shop_of_commodities: a mapping from commodities' name to its shop's name.
         :param args: positional arguments passed to the parent class
         :param kwargs: keyword arguments passed to the parent class
         """

@@ -4,6 +4,7 @@ This file is the main entrance API of the service.
 
 
 import os
+import json
 
 import oi
 from oi import cfg
@@ -16,6 +17,16 @@ def service():
     This function reads configuration from cfg and do calculation according to the config file and cached json file to
     propose a set of sensible strategies. The result will be cached also into a json file according to the config file.
     """
+
+    # crawl cart information
+    with oi.TaobaoBrowser() as crawler:
+        json.dump(crawler.crawl(),
+                  open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
+                  ensure_ascii=False,
+                  indent=4)
+
+    # use newly-defined options
+    oi.interact.UserOption().parse_options()
 
     # parse information from cache
     price, count, discount, want, scheme, shop, coupon, option = oi.input_json(cart_json=os.path.join(cfg.io.temp_path,
@@ -47,3 +58,7 @@ def service():
 
     # write the result into temp file
     oi.output_json(result, os.path.join(cfg.io.temp_path, cfg.io.output_json), scorer)
+
+
+if __name__ == '__main__':
+    service()

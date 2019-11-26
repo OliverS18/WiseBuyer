@@ -46,7 +46,7 @@ class TaobaoBrowser:
         self.browser = webdriver.Chrome(executable_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                                      'chromedriver'),
                                         options=options)
-        self.browser.set_window_size(350, 500)
+        self.browser.minimize_window()
 
         self.wait = WebDriverWait(self.browser, 60)
         self.schedule_time = time.strptime(target_time, '%Y.%m.%d') if target_time else None
@@ -70,6 +70,8 @@ class TaobaoBrowser:
         self.browser.get(url)
         self.browser.implicitly_wait(3)            # wait til the page is fully loaded
 
+        # place at proper position
+        self.browser.set_window_size(350, 500)
         self.browser.execute_script('let where = document.getElementById("J_LoginBox").getBoundingClientRect(); '
                                     'let doc = document.documentElement; '
                                     'doc.scrollTop += where.top - 50; doc.scrollLeft += where.left - 50;')
@@ -100,6 +102,7 @@ class TaobaoBrowser:
         # TODO: make this process silent in background
         # enter the page of cart
         self.browser.maximize_window()
+        self.browser.set_window_position(-10000, 10000)
         self.browser.get("https://cart.taobao.com/cart.htm")
 
         # scroll down to get all the goods in cart shown
@@ -150,6 +153,8 @@ class TaobaoBrowser:
                         available_coupons.append(save_after_)
 
                 shop_coupons[shop_name] = available_coupons
+            else:
+                shop_coupons[shop_name] = [(0, 1)]
 
             # gather commodities of each discount scheme
             # TODO: currently cannot handle postage
@@ -188,7 +193,8 @@ class TaobaoBrowser:
                         good_prop = ': ' + good_prop
 
                     good_price = float(good.find('.price-now').text().strip('￥'))
-                    good_amount = int(good.find('.item-amount input').attr('data-now'))
+                    good_amount = int(good.find('.item-amount input').attr('data-now')) \
+                        if good.find('.item-amount input') else int(good.find('.item-amount').text())   # if fixed
 
                     # TODO: How to get future price?
                     good_discounted_price = good_price
@@ -236,6 +242,7 @@ class TaobaoBrowser:
 
 
 if __name__ == '__main__':
+    # for debug
     with TaobaoBrowser() as bro:
         stuff = bro.crawl()
 

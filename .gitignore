@@ -4,3 +4,4 @@ cache/
 configs/test*
 __pycache__
 \"
+*.pyc

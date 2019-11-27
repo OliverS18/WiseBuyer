@@ -30,7 +30,7 @@ def visualize(max_length=60) -> NoReturn:
             if len(strategy[i]) > max_length:
                 strategy[i] = strategy[i][:max_length] + '...'
 
-        table.add_row(['\033[33;1m{}\033[0m'.format(rank),
+        table.add_row(['\033[33;1m{}\033[0m'.format(rank + 1),
                        '\033[32m{:.2f}\033[0m'.format(metrics['score']),
                        '\033[32m{:^2d}\033[0m'.format(metrics['total want']),
                        '\033[32m{:.2f}%\033[0m'.format(100 * metrics['overall discount']),

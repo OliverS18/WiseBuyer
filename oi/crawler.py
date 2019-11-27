@@ -78,7 +78,8 @@ class TaobaoBrowser:
 
         # switch to QR code login mode
         if self._exist('#content .content-layout .module-static'):
-            self.browser.find_element_by_css_selector('#J_Static2Quick').click()
+            element = self.browser.find_element_by_css_selector('#J_Static2Quick')
+            self.browser.execute_script("arguments[0].click();", element)
 
         # wait until acquiring member's nick name representing successfully logined
         _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,

@@ -12,21 +12,22 @@ import algorithms as algos
 import rules
 
 
-def service():
+def service(debug=False):
     """
     This function reads configuration from cfg and do calculation according to the config file and cached json file to
     propose a set of sensible strategies. The result will be cached also into a json file according to the config file.
     """
 
-    # crawl cart information
-    with oi.TaobaoBrowser() as crawler:
-        json.dump(crawler.crawl(),
-                  open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
-                  ensure_ascii=False,
-                  indent=4)
+    if not debug:
+        # crawl cart information
+        with oi.TaobaoBrowser() as crawler:
+            json.dump(crawler.crawl(),
+                      open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
+                      ensure_ascii=False,
+                      indent=4)
 
-    # use newly-defined options
-    oi.interact.UserOption().parse_options()
+        # use newly-defined options
+        oi.interact.UserOption().parse_options()
 
     # parse information from cache
     price, count, discount, want, scheme, shop, coupon, option = oi.input_json(cart_json=os.path.join(cfg.io.temp_path,
@@ -61,4 +62,4 @@ def service():
 
 
 if __name__ == '__main__':
-    service()
+    service(True)

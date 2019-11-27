@@ -368,8 +368,6 @@ class AdvancedMeanOverallHarmonicAverage(MeanAveragedWant):
             final_discount += (original_discount * mask) * coupon_by_shop[shop] / \
                               (np.sum(original_discount * mask) + 1e-4)
 
-        final_discount = final_discount / original_price
-
         # normalize discounts
         total_price = np.sum(original_price)
         price_list = np.array(list(self.price.values()))
@@ -386,7 +384,7 @@ class AdvancedMeanOverallHarmonicAverage(MeanAveragedWant):
             + (equivalent_scheme_coupon + equivalent_shop_coupon) / (equivalent_num + 1e-4)
         equivalent_discount = equivalent_discount / price_list
 
-        final_discount /= np.max(equivalent_discount) + 1e-4
+        final_discount = equivalent_discount / (np.max(equivalent_discount) + 1e-4)
 
         # calculate the OHA
         oha = np.sum(want) * np.sum(final_discount) / (np.sum(want) + np.sum(final_discount) + 1e-4)

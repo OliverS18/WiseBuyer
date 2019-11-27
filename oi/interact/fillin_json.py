@@ -54,12 +54,12 @@ class UserOption:
                                           'elaborate the program is expected to be.\n\033[0;34mLarger means expecting '
                                           'better solution, while costing more time:\033[36;1m '))
         while self.options['turns'] < 0 or self.options['turns'] > 10000:
-            self.options['turns'] = float(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+            self.options['turns'] = int(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
 
         self.options['top_k'] = int(input('\n\033[0;34mPlease specify the number of strategies you would like to be '
                                           'shown:\033[36;1m '))
         while self.options['top_k'] <= 0:
-            self.options['top_k'] = float(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+            self.options['top_k'] = int(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
 
         self.save_json()
         _ = input('\n\033[0;34mNow please check \033[0;4m{}\033[0;34m to assign want scores for your desired '

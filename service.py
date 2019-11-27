@@ -12,24 +12,33 @@ import algorithms as algos
 import rules
 
 
-def service(debug=False):
+def service():
     """
     This function reads configuration from cfg and do calculation according to the config file and cached json file to
     propose a set of sensible strategies. The result will be cached also into a json file according to the config file.
     """
 
-    if not debug:
-        # crawl cart information
-        with oi.TaobaoBrowser() as crawler:
-            json.dump(crawler.crawl(),
-                      open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
-                      ensure_ascii=False,
-                      indent=4)
+    print('\n\n\033[35;1;7mProposal generation launched.\033[0m\n')
 
-        # use newly-defined options
-        oi.interact.UserOption().parse_options()
+    # crawl cart information
+    print('\n\033[35;1mSimulated web browser environment launched.\033[0m')
+
+    print('\n\033[33mPlease follow the audio guidance. Note that your account authentication will '
+          '\033[1;33mnot\033[0;33m be preserved and will be used \033[33;1monly\033[0;33m to acquire necessary cart '
+          'information.\033[0m')
+
+    with oi.TaobaoBrowser() as crawler:
+        json.dump(crawler.crawl(),
+                  open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
+                  ensure_ascii=False,
+                  indent=4)
+
+    # use newly-defined options
+    print('\n\033[35;1mReceiving options from User...\033[0m')
+    oi.interact.UserOption().parse_options()
 
     # parse information from cache
+    print('\n\033[35;1mPreparing component...\033[0m')
     price, count, discount, want, scheme, shop, coupon, option = oi.input_json(cart_json=os.path.join(cfg.io.temp_path,
                                                                                                       cfg.io.cart_json),
                                                                                user_json=os.path.join(cfg.io.temp_path,
@@ -40,6 +49,8 @@ def service(debug=False):
                                                     price=price,
                                                     shop_of_commodities=shop,
                                                     shopwise_coupon=coupon)
+    print('\n\033[0mDiscount calculator component established.\033[0m')
+
     scorer = rules.score[option.get('eval_metric', 'amoha')](lambd=option.get('frugality', 0.1),
                                                              count=count,
                                                              original_discount=discount,
@@ -49,17 +60,29 @@ def service(debug=False):
                                                                             price.items())),
                                                              budget=option.budget,
                                                              discounter=discounter)
+    print('\n\033[0mEvaluation metric component established.\033[0m')
 
     root_node = algos.TreeNode(available_actions=count, cost=price, limit=option.budget)
+    print('\n\033[0mSearching structure component established.\033[0m')
+
     root_node.register('eval', scorer)
     root_node.register('refresh_v', discounter)
+    print('\n\033[32mComponents organized successfully.\033[0m\n')
 
     # launch scheme proposal searching
+    print('\n\033[35;1mSearching process launched.\033[0m\n')
     result = algos.algo_set[option.get('algorithm', 'mcts')](root_node, option)
+    print('\n')
 
     # write the result into temp file
     oi.output_json(result, os.path.join(cfg.io.temp_path, cfg.io.output_json), scorer)
 
+    # and visualize it through the terminal
+    print('\n\033[35;1mSearching process finished. Results are displayed as follows:\033[0m')
+    oi.interact.visualize()
+    print('\n\033[32mSearching result can also be found at \033[0;4m{}\033[0m.\n'
+          .format(os.path.join(cfg.io.temp_path, cfg.io.output_json)))
+
 
 if __name__ == '__main__':
-    service(True)
+    service()

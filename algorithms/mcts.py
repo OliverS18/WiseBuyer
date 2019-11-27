@@ -360,7 +360,12 @@ def mcts(root: TreeNode, options: Dict) -> List:
     result = dict()                      # a map from (list of choices,) to score
 
     # launch the trailing process
-    for _ in tqdm.trange(turns, dynamic_ncols=True, desc='Trails'):
+    for _ in tqdm.trange(turns, dynamic_ncols=True, desc='Trails',
+                         bar_format='\033[1;7;32m{desc}\033[0m '
+                                    '|{bar}| '
+                                    '\033[1;32m{percentage:3.0f}\033[0;32m%\033[0m '
+                                    '\033[1m[\033[32m{elapsed}\033[0m elapsed, '
+                                    '\033[1;32m{remaining}\033[0m remainin\033[1m]\033[0m'):
         current = root
 
         while not current.is_terminated():

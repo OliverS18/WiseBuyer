@@ -20,6 +20,7 @@ import os
 import re
 import time
 from typing import *
+import subprocess
 
 
 class TaobaoBrowser:
@@ -67,6 +68,7 @@ class TaobaoBrowser:
         :param url: The page of login. Default value is usually correct.
         """
         # open the url
+        print('\n\033[33mPlease wait for the login interface finishing loading.\033[0m')
         self.browser.get(url)
         self.browser.implicitly_wait(3)            # wait til the page is fully loaded
 
@@ -78,7 +80,13 @@ class TaobaoBrowser:
 
         # switch to QR code login mode
         if self._exist('#content .content-layout .module-static'):
-            self.browser.find_element_by_css_selector('#J_Static2Quick').click()
+            element = self.browser.find_element_by_css_selector('#J_Static2Quick')
+            self.browser.execute_script("arguments[0].click();", element)
+
+        print('\n\033[32mLogin interface simulated successfully.\033[0m')
+        _ = subprocess.Popen(["say",
+                              'Please scan the QR code to log in so that the cart information will be acquired.'])
+        print('\033[34mPlease scan the QR code to login.\033[0m')
 
         # wait until acquiring member's nick name representing successfully logined
         _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
@@ -88,6 +96,7 @@ class TaobaoBrowser:
                                                             '> div.site-nav-menu-hd '
                                                             '> div.site-nav-user '
                                                             '> a.site-nav-login-info-nick')))
+        print('\n\033[32mSuccessfully logged in.\033[0m')
 
     def crawl(self, name_length: Optional[int] = None) -> Tuple[Dict, Dict]:
         """
@@ -103,6 +112,13 @@ class TaobaoBrowser:
         # enter the page of cart
         self.browser.maximize_window()
         self.browser.set_window_position(-10000, 10000)
+
+        print('\n\033[0mAcquiring cart information...\033[0m')
+        print('\033[33mPlease do \033[33;1mnot\033[0;33m take any operation now because the simulated web browser will '
+              'get deactivated, causing the acquired cart information to be in-complete.\033[0m')
+        _ = subprocess.Popen(["say",
+                              'Acquiring cart information. Please do not take any operation until next voice guide.'])
+
         self.browser.get("https://cart.taobao.com/cart.htm")
 
         # scroll down to get all the goods in cart shown
@@ -204,6 +220,11 @@ class TaobaoBrowser:
                                                           good_amount,
                                                           good_scheme,
                                                           shop_name)
+
+        print('\n\033[32mCart information acquired successfully.\033[0m\n')
+        _ = subprocess.Popen(["say",
+                              'Cart information acquired successfully. '
+                              'Please switch back to the terminal interface for further steps.'])
 
         return commodities, shop_coupons
 

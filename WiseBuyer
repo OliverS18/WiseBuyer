@@ -1,0 +1,11 @@
+#!/bin/zsh
+source ~/.zshrc
+
+if [[ ! $(conda env list) =~ Coupon ]]
+then
+  conda env create -f configs/environment.yaml
+fi
+
+conda activate Coupon
+
+python service.py "$@"

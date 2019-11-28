@@ -12,8 +12,8 @@ from ..config import cfg
 
 
 class UserOption:
-    def __init__(self):
-        self.width = os.get_terminal_size()[0]
+    def __init__(self, arguments):
+        self.preset = arguments
 
         self.options = {
             "coupon_scheme": "tmall",
@@ -46,20 +46,59 @@ class UserOption:
             print('\033[0;33mCart json not presented as expected.\033[0m')
 
     def parse_options(self) -> NoReturn:
-        self.options['budget'] = float(input('\n\033[0;34mPlease specify your budget:\033[36;1m '))
-        while self.options['budget'] < 0:
-            self.options['budget'] = float(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+        if self.preset.budget is None:
+            try:
+                self.options['budget'] = float(input('\n\033[0;34mPlease specify your budget:\033[36;1m '))
+                assert self.options['budget'] >= 0
+            except (ValueError, AssertionError):
+                while True:
+                    try:
+                        self.options['budget'] = float(
+                            input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+                        assert self.options['budget'] >= 0
+                        break
+                    except (ValueError, AssertionError):
+                        continue
+        else:
+            self.options['budget'] = self.preset.budget
+            print('\nBudget set as \033[32;1m{}\033[0m.'.format(self.preset.budget))
 
-        self.options['turns'] = int(input('\n\033[0;34mPlease specify a number within 0 ~ 10000 representing how '
-                                          'elaborate the program is expected to be.\n\033[0;34mLarger means expecting '
-                                          'better solution, while costing more time:\033[36;1m '))
-        while self.options['turns'] < 0 or self.options['turns'] > 10000:
-            self.options['turns'] = int(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+        if self.preset.elaborate is None:
+            try:
+                self.options['turns'] = int(input('\n\033[0;34mPlease specify a number within 10 ~ 10000 representing '
+                                                  'how elaborate the program is expected to be.\n\033[0;34mLarger '
+                                                  'means expecting better solution, while costing more time:'
+                                                  '\033[36;1m '))
+                assert 10 <= self.options['turns'] <= 10000
+            except (ValueError, AssertionError):
+                while True:
+                    try:
+                        self.options['turns'] = int(
+                            input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+                        assert 10 <= self.options['turns'] <= 10000
+                        break
+                    except (ValueError, AssertionError):
+                        continue
+        else:
+            self.options['turns'] = self.preset.elaborate
 
-        self.options['top_k'] = int(input('\n\033[0;34mPlease specify the number of strategies you would like to be '
-                                          'shown:\033[36;1m '))
-        while self.options['top_k'] <= 0:
-            self.options['top_k'] = int(input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+        if self.preset.display_num is None:
+            try:
+                self.options['top_k'] = int(input('\n\033[0;34mPlease specify the number of strategies you would like '
+                                                  'to be shown:\033[36;1m '))
+                assert self.options['top_k'] > 0
+            except (ValueError, AssertionError):
+                while True:
+                    try:
+                        self.options['top_k'] = int(
+                            input('\033[0;33m\tInvalid input received. Sepecify again:\033[36;1m '))
+                        assert self.options['top_k'] > 0
+                        break
+                    except (ValueError, AssertionError):
+                        continue
+        else:
+            self.options['top_k'] = self.preset.display_num
+            print('\nTop \033[32;1m{}\033[0m solutions will be predicted.'.format(self.preset.display_num))
 
         self.save_json()
         _ = input('\n\033[0;34mNow please check \033[0;4m{}\033[0;34m to assign want scores for your desired '

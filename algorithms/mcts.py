@@ -361,11 +361,11 @@ def mcts(root: TreeNode, options: Dict) -> List:
 
     # launch the trailing process
     for _ in tqdm.trange(turns, dynamic_ncols=True, desc='Trails',
-                         bar_format='\033[1;7;32m{desc}\033[0m '
+                         bar_format='\033[1;7;32m{desc} \033[0;7;32m{n_fmt}\033[1;7;32m/\033[0;7;32m{total_fmt}\033[0m '
                                     '|{bar}| '
                                     '\033[1;32m{percentage:3.0f}\033[0;32m%\033[0m '
                                     '\033[1m[\033[32m{elapsed}\033[0m elapsed, '
-                                    '\033[1;32m{remaining}\033[0m remainin\033[1m]\033[0m'):
+                                    '\033[1;32m{remaining}\033[0m remain\033[1m]\033[0m'):
         current = root
 
         while not current.is_terminated():

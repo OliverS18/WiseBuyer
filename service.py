@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """
 This file is the main entrance API of the service.
 """
@@ -8,6 +10,7 @@ import json
 
 import oi
 from oi import cfg
+from oi.interact import arguments as args
 import algorithms as algos
 import rules
 
@@ -18,24 +21,34 @@ def service():
     propose a set of sensible strategies. The result will be cached also into a json file according to the config file.
     """
 
+    print('\n\033[35;1m' + oi.logo + '\033[0m')
+
     print('\n\n\033[35;1;7mProposal generation launched.\033[0m\n')
 
-    # crawl cart information
-    print('\n\033[35;1mSimulated web browser environment launched.\033[0m')
+    if not args.use_local:
+        # crawl cart information
+        print('\n\033[35;1mSimulated web browser environment launched.\033[0m')
 
-    print('\n\033[33mPlease follow the audio guidance. Note that your account authentication will '
-          '\033[1;33mnot\033[0;33m be preserved and will be used \033[33;1monly\033[0;33m to acquire necessary cart '
-          'information.\033[0m')
+        print('\n\033[33mPlease follow the audio guidance. \nNote that your account authentication will '
+              '\033[1;33mnot\033[0;33m be preserved and will be used \033[33;1monly\033[0;33m to acquire necessary '
+              'cart information.\033[0m')
 
-    with oi.TaobaoBrowser() as crawler:
-        json.dump(crawler.crawl(),
-                  open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
-                  ensure_ascii=False,
-                  indent=4)
+        with oi.TaobaoBrowser() as crawler:
+            json.dump(crawler.crawl(),
+                      open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
+                      ensure_ascii=False,
+                      indent=4)
+    else:
+        assert os.path.isfile(os.path.join(cfg.io.temp_path, cfg.io.cart_json)), \
+            '\033[31;7;1mLocal cart json file is specified in usage but not found in path' \
+            '\033[0;31;4m {}. \033[31;7;1Process terminated.\033[0m'\
+            .format(os.path.join(cfg.io.temp_path, cfg.io.cart_json))
+        print('\n\033[32;1mCart information acquired from local file \033[0;4m{}\033[0;1;32m.\033[0m'
+              .format(os.path.join(cfg.io.temp_path, cfg.io.cart_json)))
 
     # use newly-defined options
     print('\n\033[35;1mReceiving options from User...\033[0m')
-    oi.interact.UserOption().parse_options()
+    oi.interact.UserOption(args).parse_options()
 
     # parse information from cache
     print('\n\033[35;1mPreparing component...\033[0m')
@@ -82,6 +95,7 @@ def service():
     oi.interact.visualize()
     print('\n\033[32mSearching result can also be found at \033[0;4m{}\033[0m.\n'
           .format(os.path.join(cfg.io.temp_path, cfg.io.output_json)))
+    print('\n\033[35;1;7mProgram finished.\033[0m\n')
 
 
 if __name__ == '__main__':

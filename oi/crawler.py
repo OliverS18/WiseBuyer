@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as ec
 import pyquery as pq
 
 import os
+import tqdm
 import re
 import time
 from typing import *
@@ -68,7 +69,7 @@ class TaobaoBrowser:
         :param url: The page of login. Default value is usually correct.
         """
         # open the url
-        print('\n\033[33mPlease wait for the login interface finishing loading.\033[0m')
+        print('\n\033[0mLoading login interface...\033[0m')
         self.browser.get(url)
         self.browser.implicitly_wait(3)            # wait til the page is fully loaded
 
@@ -84,9 +85,14 @@ class TaobaoBrowser:
             self.browser.execute_script("arguments[0].click();", element)
 
         print('\n\033[32mLogin interface simulated successfully.\033[0m')
-        _ = subprocess.Popen(["say",
-                              'Please scan the QR code to log in so that the cart information will be acquired.'])
-        print('\033[34mPlease scan the QR code to login.\033[0m')
+
+        try:
+            _ = subprocess.Popen(["say",
+                                  'Please scan the QR code to log in so that the cart information will be acquired.'])
+        except FileNotFoundError:
+            pass
+
+        print('\n\033[34mPlease scan the QR code to login.\033[0m')
 
         # wait until acquiring member's nick name representing successfully logined
         _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
@@ -114,10 +120,15 @@ class TaobaoBrowser:
         self.browser.set_window_position(-10000, 10000)
 
         print('\n\033[0mAcquiring cart information...\033[0m')
-        print('\033[33mPlease do \033[33;1mnot\033[0;33m take any operation now because the simulated web browser will '
-              'get deactivated, causing the acquired cart information to be in-complete.\033[0m')
-        _ = subprocess.Popen(["say",
-                              'Acquiring cart information. Please do not take any operation until next voice guide.'])
+        print('\n\033[33mPlease do \033[33;1mnot\033[0;33m take any operation now. \nBecause the simulated web browser '
+              'will get deactivated hence, causing the acquired cart information to be in-complete.\033[0m\n')
+
+        try:
+            _ = subprocess.Popen(["say",
+                                  'Acquiring cart information. '
+                                  'Please do not take any operation until next voice guide.'])
+        except FileNotFoundError:
+            pass
 
         self.browser.get("https://cart.taobao.com/cart.htm")
 
@@ -129,97 +140,106 @@ class TaobaoBrowser:
         doc = pq.PyQuery(html)
 
         # acquire all orders with respect to shops
-        shops = doc('.J_Order').items()
+        shops = doc('.J_Order')
 
         # reserve container
         shop_coupons = dict()
         commodities = dict()
 
         # iterate over shops
-        for shop in shops:
-            # parse shop name
-            shop_name = shop.find('.shop-info .ww-small').attr('data-nick')
+        with tqdm.tqdm(dynamic_ncols=True, desc='Shops', total=shops.length,
+                       bar_format='\033[1;7;32m{desc} \033[0;7;32m{n_fmt}\033[1;7;32m/\033[0;7;32m{total_fmt}\033[0m '
+                                  '|{bar}| '
+                                  '\033[1;32m{percentage:3.0f}\033[0;32m%\033[0m '
+                                  '\033[1m[\033[32m{elapsed}\033[0m elapsed, '
+                                  '\033[1;32m{remaining}\033[0m remain\033[1m]\033[0m') as bar:
+            for shop in shops.items():
+                bar.update(1)
 
-            if shop_name == '天猫超市':
-                continue                        # TODO: cannot handle 天猫超市, since its discount scheme varies too much
+                # parse shop name
+                shop_name = shop.find('.shop-info .ww-small').attr('data-nick')
 
-            css_id = shop.attr('id')            # save for following click operation
+                if shop_name == '天猫超市':
+                    continue                    # TODO: cannot handle 天猫超市, since its discount scheme varies too much
 
-            # try if there are shop coupons
-            if shop.find('.J_MyShopCoupon'):
-                available_coupons = list()
+                css_id = shop.attr('id')        # save for following click operation
 
-                self.browser.execute_script('arguments[0].click();',
-                                            self.browser.find_element_by_css_selector('#{} .J_MyShopCoupon em'
-                                                                                      .format(css_id)))
-                _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
-                                                                    '.coupon-popup .coupon-list ')))
-                doc = pq.PyQuery(self.browser.page_source)
-                coupon_list = doc('.coupon-popup').find('.coupon-info').items()
+                # try if there are shop coupons
+                if shop.find('.J_MyShopCoupon'):
+                    available_coupons = list()
 
-                for coupon in coupon_list:
-                    scheme = re.match('.*?' + self._translate('满') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
-                                      coupon.find('.coupon-title').text()).groups()
-                    save_after_ = (int(scheme[1]), int(scheme[0]))
+                    self.browser.execute_script('arguments[0].click();',
+                                                self.browser.find_element_by_css_selector('#{} .J_MyShopCoupon em'
+                                                                                          .format(css_id)))
+                    _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
+                                                                        '.coupon-popup .coupon-list ')))
+                    doc = pq.PyQuery(self.browser.page_source)
+                    coupon_list = doc('.coupon-popup').find('.coupon-info').items()
 
-                    valid_range = re.match('(.*)?-(.*)', coupon.find('.coupon-time').text()).groups()
-                    valid_range = [time.strptime(timespot, '%Y.%m.%d') for timespot in valid_range]
+                    for coupon in coupon_list:
+                        scheme = re.match('.*?' + self._translate('满') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
+                                          coupon.find('.coupon-title').text()).groups()
+                        save_after_ = (int(scheme[1]), int(scheme[0]))
 
-                    if self.schedule_time is None or valid_range[0] <= self.schedule_time <= valid_range[1]:
-                        available_coupons.append(save_after_)
+                        valid_range = re.match('(.*)?-(.*)', coupon.find('.coupon-time').text()).groups()
+                        valid_range = [time.strptime(timespot, '%Y.%m.%d') for timespot in valid_range]
 
-                shop_coupons[shop_name] = available_coupons
-            else:
-                shop_coupons[shop_name] = [(0, 1)]
+                        if self.schedule_time is None or valid_range[0] <= self.schedule_time <= valid_range[1]:
+                            available_coupons.append(save_after_)
 
-            # gather commodities of each discount scheme
-            # TODO: currently cannot handle postage
+                    shop_coupons[shop_name] = available_coupons
+                else:
+                    shop_coupons[shop_name] = [(0, 1)]
 
-            schemes = shop.find('.bundle').items()
-            for scheme in schemes:
-                good_scheme = (0, 1)
+                # gather commodities of each discount scheme
+                # TODO: currently cannot handle postage
 
-                if scheme.find('.bundle-hd'):
-                    # TODO: check if the discount scheme is indeed displayed within such element
-                    matched = re.match('.*?' + self._translate('每') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
-                                       scheme.find('.bundle-hd .bd-title').text())
-                    if matched:
-                        good_scheme = (int(matched.group(2)), int(matched.group(1)))
+                schemes = shop.find('.bundle').items()
+                for scheme in schemes:
+                    good_scheme = (0, 1)
 
-                goods = scheme.find('.item-content').items()
-                for good in goods:
-                    if good.find('.td-chk').text() == '失效':
-                        continue
+                    if scheme.find('.bundle-hd'):
+                        # TODO: check if the discount scheme is indeed displayed within such element
+                        matched = \
+                            re.match('.*?' + self._translate('每') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
+                                     scheme.find('.bundle-hd .bd-title').text())
+                        if matched:
+                            good_scheme = (int(matched.group(2)), int(matched.group(1)))
 
-                    good_name = good.find('.item-info a.J_GoldReport').attr('title')
-                    if name_length and len(good_name) > name_length:
-                        good_name = good_name[:name_length] + '... '
+                    goods = scheme.find('.item-content').items()
+                    for good in goods:
+                        if good.find('.td-chk').text() == '失效':
+                            continue
 
-                    good_pic = good.find('.item-pic img').attr('src')
+                        good_name = good.find('.item-info a.J_GoldReport').attr('title')
+                        if name_length and len(good_name) > name_length:
+                            good_name = good_name[:name_length] + '... '
 
-                    good_prop = str()
-                    props = good.find('.item-props .sku-line').items()
-                    for prop in props:
-                        good_prop += re.match('.*?' + self._translate('：') + '(.*)', prop.text()).group(1)
-                        good_prop += ', '
+                        good_pic = good.find('.item-pic img').attr('src')
 
-                    good_prop = good_prop.strip(', ')
+                        good_prop = str()
+                        props = good.find('.item-props .sku-line').items()
+                        for prop in props:
+                            good_prop += re.match('.*?' + self._translate('：') + '(.*)', prop.text()).group(1)
+                            good_prop += ', '
 
-                    if good_prop:
-                        good_prop = ': ' + good_prop
+                        good_prop = good_prop.strip(', ')
 
-                    good_price = float(good.find('.price-now').text().strip('￥'))
-                    good_amount = int(good.find('.item-amount input').attr('data-now')) \
-                        if good.find('.item-amount input') else int(good.find('.item-amount').text())   # if fixed
+                        if good_prop:
+                            good_prop = ': ' + good_prop
 
-                    # TODO: How to get future price?
-                    good_discounted_price = good_price
+                        good_price = float(good.find('.price-now').text().strip('￥'))
+                        good_amount = int(good.find('.item-amount input').attr('data-now')) \
+                            if good.find('.item-amount input') else int(good.find('.item-amount').text())   # if fixed
 
-                    commodities[good_name + good_prop] = (good_price,
-                                                          good_discounted_price,
-                                                          good_amount,
-                                                          good_scheme,
-                                                          shop_name)
+                        # TODO: How to get future price?
+                        good_discounted_price = good_price
+
+                        commodities[good_name + good_prop] = (good_price,
+                                                              good_discounted_price,
+                                                              good_amount,
+                                                              good_scheme,
+                                                              shop_name)
 
         print('\n\033[32mCart information acquired successfully.\033[0m\n')
         _ = subprocess.Popen(["say",

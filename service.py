@@ -28,11 +28,6 @@ def service():
     if not args.use_local:
         # crawl cart information
         print('\n\033[35;1mSimulated web browser environment launched.\033[0m')
-
-        print('\n\033[33mPlease follow the audio guidance. \nNote that your account authentication will '
-              '\033[1;33mnot\033[0;33m be preserved and will be used \033[33;1monly\033[0;33m to acquire necessary '
-              'cart information.\033[0m')
-
         with oi.TaobaoBrowser() as crawler:
             json.dump(crawler.crawl(),
                       open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),

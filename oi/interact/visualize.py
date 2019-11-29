@@ -43,5 +43,5 @@ def visualize(max_length=60) -> NoReturn:
 
     table.align['strategy detail'] = 'l'
 
-    print('\n')
+    print('')
     print(table)

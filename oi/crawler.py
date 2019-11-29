@@ -21,7 +21,11 @@ import tqdm
 import re
 import time
 from typing import *
-import subprocess
+import requests
+import cv2
+
+from .config import cfg
+from .interact.inline_display import img2terminal, clear
 
 
 class TaobaoBrowser:
@@ -43,6 +47,7 @@ class TaobaoBrowser:
         options.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 1})
         options.add_argument('disable-infobars')
         options.add_argument('--no-sandbox')
+        options.add_argument('--headless')
 
         # set up browser
         self.browser = webdriver.Chrome(executable_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -86,13 +91,19 @@ class TaobaoBrowser:
 
         print('\n\033[32mLogin interface simulated successfully.\033[0m')
 
-        try:
-            _ = subprocess.Popen(["say",
-                                  'Please scan the QR code to log in so that the cart information will be acquired.'])
-        except FileNotFoundError:
-            pass
+        qr_code = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
+                                                                  '#J_QRCodeImg img'))).get_attribute('src')
+        qr_img = requests.get(qr_code).content
+
+        with open(os.path.join(cfg.io.temp_path, cfg.io.qr), 'wb') as img:
+            img.write(qr_img)
 
         print('\n\033[34mPlease scan the QR code to login.\033[0m')
+        print('\n\033[33mPlease rest assured. '
+              '\nYour account authentication will \033[1;33mnot\033[0;33m be preserved and will be used '
+              '\033[33;1monly\033[0;33m to acquire necessary cart information\033[0m\n')
+
+        height = img2terminal(cv2.imread(os.path.join(cfg.io.temp_path, cfg.io.qr)), width=48, indent=1)
 
         # wait until acquiring member's nick name representing successfully logined
         _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
@@ -102,7 +113,9 @@ class TaobaoBrowser:
                                                             '> div.site-nav-menu-hd '
                                                             '> div.site-nav-user '
                                                             '> a.site-nav-login-info-nick')))
-        print('\n\033[32mSuccessfully logged in.\033[0m')
+
+        clear(height)
+        print('\033[32mSuccessfully logged in.\033[0m')
 
     def crawl(self, name_length: Optional[int] = None) -> Tuple[Dict, Dict]:
         """
@@ -114,21 +127,11 @@ class TaobaoBrowser:
         :return: two dicts representing commodity information and shopwise coupon schemes respectively required by the
             main service.py
         """
-        # TODO: make this process silent in background
         # enter the page of cart
         self.browser.maximize_window()
         self.browser.set_window_position(-10000, 10000)
 
-        print('\n\033[0mAcquiring cart information...\033[0m')
-        print('\n\033[33mPlease do \033[33;1mnot\033[0;33m take any operation now. \nBecause the simulated web browser '
-              'will get deactivated hence, causing the acquired cart information to be in-complete.\033[0m\n')
-
-        try:
-            _ = subprocess.Popen(["say",
-                                  'Acquiring cart information. '
-                                  'Please do not take any operation until next voice guide.'])
-        except FileNotFoundError:
-            pass
+        print('\n\033[0mAcquiring cart information...\033[0m\n')
 
         self.browser.get("https://cart.taobao.com/cart.htm")
 
@@ -242,9 +245,6 @@ class TaobaoBrowser:
                                                               shop_name)
 
         print('\n\033[32mCart information acquired successfully.\033[0m\n')
-        _ = subprocess.Popen(["say",
-                              'Cart information acquired successfully. '
-                              'Please switch back to the terminal interface for further steps.'])
 
         return commodities, shop_coupons
 

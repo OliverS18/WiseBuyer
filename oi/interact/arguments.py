@@ -56,24 +56,28 @@ def get_options() -> argparse.Namespace:
 
     parser.add_argument('-l', '--use_local',
                         action='store_true',
-                        help='To use the previous cached json file instead of crawl it again from Taobao.')
+                        help='To use the previous cached json file instead of crawling it again from Taobao.')
     parser.add_argument('-b', '--budget',
                         type=float,
                         help='The budget in CNY.')
     parser.add_argument('-f', '--frugality',
                         type=float,
-                        help='If the proposed choices is considered to be better if cost less, then this coefficient '
-                             'is supposed to be set as a positive number. Larger means you caring more about cost '
-                             'over the discount/desiring.')
+                        help='If the proposed choices is considered to be better if costint less, then this '
+                             'coefficient is supposed to be set as a positive number. Larger means you caring more '
+                             'about cost over the discount/desiring.')
     parser.add_argument('-d', '--display_num',
                         type=int,
-                        help='Number of proposed choices you would like the program to display.')
+                        help='Number of proposed choices you would like the program to demonstrate.')
     parser.add_argument('-e', '--elaborate',
                         type=int,
-                        help='Since the program use Monte Carlo Tree Search algorithm to search for choices, more '
+                        help='Since the program uses Monte Carlo Tree Search algorithm to search for choices, more '
                              'calculations will bring about solutions more sensible, but also more time consuming. '
                              'This argument controls the trade-off balance, where larger means more calculations. '
                              'Empirically, setting within 10 ~ 10000 works fine.')
+    parser.add_argument('-c', '--confirm',
+                        action='store_true',
+                        help='Set if you want to make no edition on the json configuration and skip the confirm '
+                             'procedure.')
 
     options = parser.parse_args()
 

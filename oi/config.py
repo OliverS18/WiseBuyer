@@ -8,7 +8,7 @@ from easydict import EasyDict
 import configparser
 
 
-_CONFIG_NAME = 'v-0-1-1.ini'
+_CONFIG_NAME = 'v-0-1-2.ini'
 
 
 def load_config() -> EasyDict:

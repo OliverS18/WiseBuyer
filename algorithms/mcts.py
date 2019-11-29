@@ -15,6 +15,11 @@ import random
 import tqdm
 from typing import *
 
+from oi.config import cfg
+
+
+random.seed(20191129)
+
 
 class TreeNode:
     """
@@ -195,7 +200,14 @@ class TreeNode:
 
         if not self.is_terminated():
             space = self.available_actions.keys() - self._children.keys()
-            action = random.choice(list(space))
+
+            if cfg.algorithm.stable == 'True':
+                action = random.choice(sorted(space))
+            else:
+                assert cfg.algorithm.stable == 'False', \
+                    '\033[31mUnrecognized configuration \033[31;1m{}\033[0;31m for algorithm.stable.\033[0m'\
+                    .format(cfg.algorithm.stable)
+                action = random.choice(list(space))
 
             self._children[action] = self.__class__(self, action)
             return self._children[action]
@@ -207,7 +219,14 @@ class TreeNode:
         :return: next best node according to uct
         """
 
-        candidates = list(self._children.values())
+        if cfg.algorithm.stable == 'True':
+            candidates = [self._children[_action] for _action in sorted(self._children)]
+        else:
+            assert cfg.algorithm.stable == 'False', \
+                '\033[31mUnrecognized configuration \033[31;1m{}\033[0;31m for algorithm.stable.\033[0m' \
+                .format(cfg.algorithm.stable)
+            candidates = list(self._children.values())
+
         random.shuffle(candidates)
 
         return max(candidates, key=lambda act_node: act_node.uct)

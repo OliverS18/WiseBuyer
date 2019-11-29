@@ -24,6 +24,8 @@ def service():
     print('\n\033[35;1m' + oi.logo + '\033[0m')
 
     print('\n\n\033[35;1;7mProposal generation launched.\033[0m\n')
+    if not os.path.isdir(cfg.io.temp_path):
+        os.mkdir(cfg.io.temp_path)
 
     if not args.use_local:
         # crawl cart information

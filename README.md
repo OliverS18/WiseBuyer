@@ -88,8 +88,10 @@ The usage of supported arguments can be found by:
 - [ ] Check the coupon element when it is exposed during 12.12
 - [ ] Develop GUI
 - [ ] Code optimization
+- [ ] Support Chinese
+- [ ] Support Windows & test on Linux
 
-welcome pull request.
+Welcome pull request.
 
 # Acknowledgement
 

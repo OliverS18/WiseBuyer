@@ -47,6 +47,8 @@ class UserOption:
 
     def parse_options(self) -> NoReturn:
         if self.preset.budget is None:
+            print('\33[?25h', end='')
+
             try:
                 self.options['budget'] = float(input('\n\033[0;34mPlease specify your budget:\033[36;1m '))
                 assert self.options['budget'] >= 0
@@ -63,7 +65,11 @@ class UserOption:
             self.options['budget'] = self.preset.budget
             print('\nBudget set as \033[32;1m{}\033[0m.'.format(self.preset.budget))
 
+        print('\33[?25l', end='')
+
         if self.preset.elaborate is None:
+            print('\33[?25h', end='')
+
             try:
                 self.options['turns'] = int(input('\n\033[0;34mPlease specify a number within 10 ~ 10000 representing '
                                                   'how elaborate the program is expected to be.\n\033[0;34mLarger '
@@ -82,7 +88,11 @@ class UserOption:
         else:
             self.options['turns'] = self.preset.elaborate
 
+        print('\33[?25l', end='')
+
         if self.preset.display_num is None:
+            print('\33[?25h', end='')
+
             try:
                 self.options['top_k'] = int(input('\n\033[0;34mPlease specify the number of strategies you would like '
                                                   'to be shown:\033[36;1m '))
@@ -102,14 +112,19 @@ class UserOption:
 
         self.options['frugality'] = self.preset.frugality if self.preset.frugality is not None else 0
 
+        print('\33[?25l', end='')
+
         self.save_json()
 
         if not self.preset.confirm:
+            print('\33[?25h', end='')
             _ = input('\n\033[0;34mNow please check \033[0;4m{}\033[0;34m to assign want scores for your desired '
                       'commodities. The scores is recommended in range 0 ~ 5 with \033[1;34mhigher\033[0;34m means '
                       '\033[1;34mmore desirable\033[0;34m.\nWhen finished or just intending to taking no account to '
                       'the subjective desiring score, please type anything here to continue:\033[36;1m '
                       .format(os.path.join(cfg.io.temp_path, cfg.io.user_json)))
+
+        print('\33[?25l', end='')
 
         print('\n\033[0;32mOptions specified succesfully. If you want to modify more configurations, please check '
               '\033[0;4m{}\033[0;32m and edit as you want.\033[0m\n'.format(os.path.join(cfg.io.temp_path,

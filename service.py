@@ -21,6 +21,7 @@ def service():
     propose a set of sensible strategies. The result will be cached also into a json file according to the config file.
     """
 
+    print('\33[?25l', end='')
     print('\n\033[35;1m' + oi.logo + '\033[0m')
 
     print('\n\n\033[35;1;7mProposal generation launched.\033[0m\n')
@@ -93,6 +94,7 @@ def service():
     print('\n\033[32mSearching result can also be found at \033[0;4m{}\033[0m.\n'
           .format(os.path.join(cfg.io.temp_path, cfg.io.output_json)))
     print('\n\033[35;1;7mProgram finished.\033[0m\n')
+    print('\33[?25h', end='')
 
 
 if __name__ == '__main__':

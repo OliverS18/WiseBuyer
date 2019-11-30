@@ -101,7 +101,7 @@ class TaobaoBrowser:
         print('\n\033[34mPlease scan the QR code to login.\033[0m')
         print('\n\033[33mPlease rest assured. '
               '\nYour account authentication will \033[1;33mnot\033[0;33m be preserved and will be used '
-              '\033[33;1monly\033[0;33m to acquire necessary cart information\033[0m\n')
+              '\033[33;1monly\033[0;33m to acquire necessary cart information.\033[0m\n')
 
         height = img2terminal(cv2.imread(os.path.join(cfg.io.temp_path, cfg.io.qr)), width=48, indent=1)
 

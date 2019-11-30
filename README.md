@@ -43,7 +43,7 @@ When the program is called for the first time, the dependencies will automatical
 
 # Usage
 
-## Pull the source code
+### Pull the source code
 
 ```bash
 git clone git@github.com:OliverS18/WiseBuyer.git
@@ -52,7 +52,7 @@ cd WiseBuyer
 
 Then you can run the program with interactive manner or passive manner.
 
-## Interactive mode
+### Interactive mode
 
 Just one-line command below and follow the prompts.
 
@@ -63,7 +63,7 @@ Just one-line command below and follow the prompts.
 **Note:**  
 Due to the restriction of *Taobao.com*, WiseBuyer requires you to login in order to acquire information of the goods in your cart. Your authentication is **guaranteed** to be used **only** to acquire no more than necessary information and also will **not** be preserved for other use.
 
-## Passive mode
+### Passive mode
 
 WiseBuyer also allows argument passed from terminal like:
 

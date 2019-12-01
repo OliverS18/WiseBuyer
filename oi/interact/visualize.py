@@ -36,7 +36,7 @@ def visualize(max_length=60) -> NoReturn:
 
         table.add_row([color + '\033[1m{}\033[0m'.format(rank + 1),
                        color + '{:.2f}\033[0m'.format(metrics['score']),
-                       color + '{:^2d}\033[0m'.format(metrics['total want']),
+                       color + '{:.2f}\033[0m'.format(metrics['total want']),
                        color + '{:.2f}%\033[0m'.format(100 * metrics['overall discount']),
                        color + '¥ {:,.2f}\033[0m'.format(metrics['total cost']),
                        color + (',\033[0m\n' + color).join(strategy) + '\033[0m'])

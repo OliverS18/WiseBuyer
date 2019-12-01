@@ -28,10 +28,15 @@ def service():
     if not os.path.isdir(cfg.io.temp_path):
         os.mkdir(cfg.io.temp_path)
 
+    # use newly-defined options
+    print('\n\033[35;1mReceiving options from User...\033[0m')
+    options = oi.interact.UserOption(args)
+    date = options.parse_options()
+
     if not args.use_local:
         # crawl cart information
         print('\n\033[35;1mSimulated web browser environment launched.\033[0m')
-        with oi.TaobaoBrowser() as crawler:
+        with oi.TaobaoBrowser(date) as crawler:
             json.dump(crawler.crawl(),
                       open(os.path.join(cfg.io.temp_path, cfg.io.cart_json), 'w'),
                       ensure_ascii=False,
@@ -41,12 +46,10 @@ def service():
             '\033[31;7;1mLocal cart json file is specified in usage but not found in path' \
             '\033[0;31;4m {}. \033[31;7;1Process terminated.\033[0m'\
             .format(os.path.join(cfg.io.temp_path, cfg.io.cart_json))
-        print('\n\033[32;1mCart information acquired from local file \033[0;4m{}\033[0;1;32m.\033[0m'
+        print('\033[0;32mCart information acquired from local file \033[0;4m{}\033[0;32m.\033[0m'
               .format(os.path.join(cfg.io.temp_path, cfg.io.cart_json)))
 
-    # use newly-defined options
-    print('\n\033[35;1mReceiving options from User...\033[0m')
-    oi.interact.UserOption(args).parse_options()
+    options.reload_cart()
 
     # parse information from cache
     print('\n\033[35;1mPreparing component...\033[0m')
@@ -83,13 +86,13 @@ def service():
     # launch scheme proposal searching
     print('\n\033[35;1mSearching process launched.\033[0m\n')
     result = algos.algo_set[option.get('algorithm', 'mcts')](root_node, option)
-    print('\n')
+    print('\n\033[32mSearching process finished.\033[0m\n')
 
     # write the result into temp file
     oi.output_json(result, os.path.join(cfg.io.temp_path, cfg.io.output_json), scorer)
 
     # and visualize it through the terminal
-    print('\n\033[35;1mSearching process finished. Results are displayed as follows:\033[0m')
+    print('\n\033[35;1mProposed Results:\033[0m')
     oi.interact.visualize()
     print('\n\033[32mSearching result can also be found at \033[0;4m{}\033[0m.\n'
           .format(os.path.join(cfg.io.temp_path, cfg.io.output_json)))

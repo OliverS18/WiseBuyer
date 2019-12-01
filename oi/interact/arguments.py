@@ -4,8 +4,7 @@ This File parses arguments passed to the main script
 
 
 import argparse
-import re as _re
-from gettext import gettext as _
+import time
 
 from ..logo import logo
 
@@ -65,7 +64,7 @@ def get_options() -> argparse.Namespace:
                         help='If the proposed choices is considered to be better if costint less, then this '
                              'coefficient is supposed to be set as a positive number. Larger means you caring more '
                              'about cost over the discount/desiring.')
-    parser.add_argument('-d', '--display_num',
+    parser.add_argument('-n', '--display_num',
                         type=int,
                         help='Number of proposed choices you would like the program to demonstrate.')
     parser.add_argument('-e', '--elaborate',
@@ -74,10 +73,14 @@ def get_options() -> argparse.Namespace:
                              'calculations will bring about solutions more sensible, but also more time consuming. '
                              'This argument controls the trade-off balance, where larger means more calculations. '
                              'Empirically, setting within 10 ~ 10000 works fine.')
-    parser.add_argument('-c', '--confirm',
+    parser.add_argument('-d', '--use_default',
                         action='store_true',
                         help='Set if you want to make no edition on the json configuration and skip the confirm '
                              'procedure.')
+    parser.add_argument('-t', '--date',
+                        type=str,
+                        help='The intended date to buy the commodities. Will influence the availability of coupons. '
+                             'Should conforms to the format of `yyyy.mm.dd`.')
 
     options = parser.parse_args()
 
@@ -92,6 +95,12 @@ def get_options() -> argparse.Namespace:
 
     if options.elaborate and not 10 <= options.elaborate <= 10000:
         parser.error('Elaborate coefficient is supposed to be within 10 to 10000.')
+
+    if options.date:
+        try:
+            options.date = time.strptime(options.date, '%Y.%m.%d')
+        except ValueError:
+            parser.error('Invalid target date format.')
 
     return options
 

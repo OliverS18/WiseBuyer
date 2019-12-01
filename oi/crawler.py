@@ -33,12 +33,12 @@ class TaobaoBrowser:
     The overall structure warping the crawl logic all together.
     """
 
-    def __init__(self, target_time: Optional[str] = None):
+    def __init__(self, target_time: Optional[time.struct_time] = None):
         """
         Instantiate a TaobaoBrowser object.
 
         :param target_time: the target time to perform purchase action. may infect availability of coupons.
-            If provided, it should conforms to the format as `yyyy.mm.dd`
+            If provided, it should be converted from the format as `yyyy.mm.dd`
         """
 
         # avoid recognized by anti-crawler mechanism
@@ -56,7 +56,7 @@ class TaobaoBrowser:
         self.browser.minimize_window()
 
         self.wait = WebDriverWait(self.browser, 60)
-        self.schedule_time = time.strptime(target_time, '%Y.%m.%d') if target_time else None
+        self.schedule_time = target_time
 
         self.login()
 
@@ -160,7 +160,7 @@ class TaobaoBrowser:
                 bar.update(1)
 
                 # parse shop name
-                shop_name = shop.find('.shop-info .ww-small').attr('data-nick')
+                shop_name = shop.find('.shop-info>a').text()
 
                 if shop_name == '天猫超市':
                     continue                    # TODO: cannot handle 天猫超市, since its discount scheme varies too much
@@ -177,12 +177,21 @@ class TaobaoBrowser:
                     _ = self.wait.until(ec.presence_of_element_located((By.CSS_SELECTOR,
                                                                         '.coupon-popup .coupon-list ')))
                     doc = pq.PyQuery(self.browser.page_source)
-                    coupon_list = doc('.coupon-popup').find('.coupon-info').items()
+                    coupon_list = doc('.coupon-popup').find('li.coupon').items()
 
                     for coupon in coupon_list:
                         scheme = re.match('.*?' + self._translate('满') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
-                                          coupon.find('.coupon-title').text()).groups()
-                        save_after_ = (int(scheme[1]), int(scheme[0]))
+                                          coupon.find('.coupon-title').text())
+                        if scheme:
+                            scheme = scheme.groups()
+                        else:
+                            after = re.match('.*?' + self._translate('满') + '(\\d+\\.\\d*).*',
+                                             coupon.find('.coupon-title').text()).group(1)
+                            save = re.match('.*?(\\d+).*?', coupon.find('.coupon-amount').text()).group(1)
+
+                            scheme = (after, save)
+
+                        save_after_ = (int(scheme[1]), float(scheme[0]))
 
                         valid_range = re.match('(.*)?-(.*)', coupon.find('.coupon-time').text()).groups()
                         valid_range = [time.strptime(timespot, '%Y.%m.%d') for timespot in valid_range]
@@ -202,7 +211,6 @@ class TaobaoBrowser:
                     good_scheme = (0, 1)
 
                     if scheme.find('.bundle-hd'):
-                        # TODO: check if the discount scheme is indeed displayed within such element
                         matched = \
                             re.match('.*?' + self._translate('每') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
                                      scheme.find('.bundle-hd .bd-title').text())
@@ -244,7 +252,7 @@ class TaobaoBrowser:
                                                               good_scheme,
                                                               shop_name)
 
-        print('\n\033[32mCart information acquired successfully.\033[0m\n')
+        print('\n\033[32mCart information acquired successfully.\033[0m')
 
         return commodities, shop_coupons
 

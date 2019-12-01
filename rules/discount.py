@@ -118,7 +118,7 @@ class ShopwiseDiscount(Discount, ABC):
         self.shops = shop_of_commodities
         self.shop_types = set(self.shops.values())
 
-        self.shopwise_coupon = {shop: sorted(coupons, key=lambda scheme: scheme[0])
+        self.shopwise_coupon = {shop: sorted(coupons, key=lambda scheme: scheme[0], reverse=True)
                                 for shop, coupons in shopwise_coupon.items()}   # sort from the largest to the smallest
 
     def get_shopwise_coupon_and_cost(self, prev: Optional[TreeNode], action: str) -> Tuple[Dict, Dict]:

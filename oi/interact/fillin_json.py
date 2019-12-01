@@ -120,8 +120,8 @@ class UserOption:
                 print('\33[?25h', end='')
 
                 try:
-                    top_k = input('\n\033[0;34mPlease specify the number of strategies you would like to be shown. Default '
-                                  'as \033[36m10\033[34m:\033[36;1m ')
+                    top_k = input('\n\033[0;34mPlease specify the number of strategies you would like to be shown. '
+                                  'Default as \033[36m10\033[34m:\033[36;1m ')
                     if top_k:
                         self.options['top_k'] = int(top_k)
                         assert self.options['top_k'] > 0
@@ -167,7 +167,8 @@ class UserOption:
                         try:
                             date = str(input('\033[0;33m\tInvalid input received. Sepecify again:\n'
                                              '\tPlease leave blank if intending to use default value \033[36mtoday'
-                                             '\033[33m, or follow the format of `yyyy.mm.dd`, e.g. 2019.11.29:\033[36;1m '))
+                                             '\033[33m, or follow the format of `yyyy.mm.dd`, e.g. 2019.11.29:'
+                                             '\033[36;1m '))
                             if date:
                                 date = time.strptime(date, '%Y.%m.%d')
                             else:
@@ -183,7 +184,7 @@ class UserOption:
         else:
             date = self.preset.date
             print('\nThe program will consider discount on \033[32;1m{}\033[0m.'.format(time.strftime('%b %d (%A), %Y',
-                                                                                                       date)))
+                                                                                                      date)))
 
         self.options['frugality'] = self.preset.frugality if self.preset.frugality is not None else 0
 

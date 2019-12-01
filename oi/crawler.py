@@ -240,7 +240,6 @@ class TaobaoBrowser:
                         good_amount = int(good.find('.item-amount input').attr('data-now')) \
                             if good.find('.item-amount input') else int(good.find('.item-amount').text())   # if fixed
 
-                        # TODO: How to get future price?
                         good_discounted_price = good_price
                         if good.find('.item-info>.item-other-info>.promo-logos>.promo-logo'):
                             base_page = self.browser.current_window_handle

@@ -77,10 +77,6 @@ def get_options() -> argparse.Namespace:
                         action='store_true',
                         help='Set if you want to make no edition on the json configuration and skip the confirm '
                              'procedure.')
-    parser.add_argument('-t', '--date',
-                        type=str,
-                        help='The intended date to buy the commodities. Will influence the availability of coupons. '
-                             'Should conforms to the format of `yyyy.mm.dd`.')
 
     options = parser.parse_args()
 
@@ -96,11 +92,7 @@ def get_options() -> argparse.Namespace:
     if options.elaborate and not 10 <= options.elaborate <= 10000:
         parser.error('Elaborate coefficient is supposed to be within 10 to 10000.')
 
-    if options.date:
-        try:
-            options.date = time.strptime(options.date, '%Y.%m.%d')
-        except ValueError:
-            parser.error('Invalid target date format.')
+    options.date = time.strptime('2019.12.12', '%Y.%m.%d')
 
     return options
 

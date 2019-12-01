@@ -11,7 +11,7 @@
     </br>
     <img src="https://img.shields.io/github/repo-size/OliverS18/WiseBuyer?style=flat-square" alt="Repo size">
     <span>&nbsp;&nbsp;</span>
-    <img src="https://img.shields.io/badge/status-developing-yellowgreen?style=flat-square" alt="Status">
+    <img src="https://img.shields.io/badge/status-optimizing-yellowgreen?style=flat-square" alt="Status">
     <!--
         </br>
         </br>
@@ -20,17 +20,17 @@
     </br></br>
 </div>
 
-# Introduction
+# What's the difference?
 
-When it comes to 11.11 or other e-commercial events, there are usually a lot of rules with great complexities, where customers have to do a hard math to manage their shoplist to acquire a relatively high discount. **Now WiseBuyer is here to provide an easy solution.** Just add your favorite goods to the cart and WiseBuyer will do all the rest work for you, providing a set of found sensible choices for your reference at the end.
+1. The version in this branch can acquire the prices on 12.12, and compare them with the current one to calculate discount. It also takes the inter-shop coupons on 12.12 into account.
 
-# Demo
-
-![demo](doc/demo.gif "demo")
+2. The version in this branch do not support indicating buying date currently, i.e. it is specially designed for 12.12 and can **only** calculate discount on 12.12.
 
 # Requirements
 
-- #### Mac OS X
+- #### MacOS X
+
+- #### Chrome 78.0
 
 - #### Python 3.6+
 
@@ -48,6 +48,7 @@ When the program is called for the first time, the dependencies will automatical
 ```bash
 git clone git@github.com:OliverS18/WiseBuyer.git
 cd WiseBuyer
+git checkout -b origin/12.12
 ```
 
 Then you can run the program with interactive manner or passive manner.
@@ -81,15 +82,15 @@ The usage of supported arguments can be found by:
 
 - Current support *Taobao.com*/*Tmall.com* only.
 
-- WiseBuyer is still under development. Since the coupon element is not shown up on *Taobao.com* during current development, WiseBuyer is not guaranteed to acquire correct platform coupons. The issue will be fixed during the upcoming 12.12.
+- WiseBuyer is still under development but is now able to acquire 12.12 coupons.
+
+- As the first edition to support 12.12 coupons, the crawler is currently working slowly. The issue will be fixed in the future.
 
 # TODO
 
-- [ ] Check the coupon element when it is exposed during 12.12
-- [ ] Develop GUI
+- [x] Check the coupon element when it is exposed during 12.12
 - [ ] Code optimization
-- [ ] Support Chinese
-- [ ] Support Windows & test on Linux
+- [ ] Merge into master branch
 
 Welcome pull request.
 
@@ -99,7 +100,11 @@ Welcome pull request.
 
 - [@tobegit3hub](https://github.com/tobegit3hub "tobegit3hub's personal page") for the great [ML tutorial](https://github.com/tobegit3hub/ml_implementation "Repository URL").
 
-- [hitrjj](https://me.csdn.net/u014636245 "hitrjj's blog") for the original implementation to [show an image in terminal](https://blog.csdn.net/u014636245/article/details/83661559, "Blog URL")
+- [hitrjj](https://me.csdn.net/u014636245 "hitrjj's blog") for the original implementation to [show an image in terminal](https://blog.csdn.net/u014636245/article/details/83661559 "Blog URL").
+
+- [@Shengqiang Zhang](https://github.com/shengqiangzhang "Shengqiang Zhang's personal page") for the great [crawler tutorial](https://github.com/shengqiangzhang/examples-of-web-crawlers "Repository URL").
+
+- [Andy丶Tao](https://me.csdn.net/tao15716645708 "Andy丶Tao's blog") for the inspiration of [login method](https://blog.csdn.net/tao15716645708/article/details/98870266 "Blog URL") on *Taobao.com*.
 
 &nbsp;  
 &nbsp;  

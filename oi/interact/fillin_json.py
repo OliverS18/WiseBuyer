@@ -40,7 +40,7 @@ class UserOption:
     def reload_cart(self) -> NoReturn:
         if os.path.isfile(os.path.join(cfg.io.temp_path, cfg.io.cart_json)):
             self.commodities = json.load(open(os.path.join(cfg.io.temp_path, cfg.io.cart_json)))[0]
-            self.want = {commodity: 5 for commodity in self.commodities}
+            self.want = {commodity: self.commodities[commodity][1] for commodity in self.commodities}
         else:
             print('\033[0;33mCart json not presented as expected.\033[0m')
 

@@ -157,7 +157,7 @@ class TaobaoBrowser:
                                   '\033[1m[\033[32m{elapsed}\033[0m elapsed, '
                                   '\033[1;32m{remaining}\033[0m remain\033[1m]\033[0m') as bar:
             for shop in shops.items():
-                bar.update(1)
+                bar.update()
 
                 # parse shop name
                 shop_name = shop.find('.shop-info>a').text()
@@ -187,7 +187,7 @@ class TaobaoBrowser:
                         else:
                             after = re.match('.*?' + self._translate('满') + '(\\d+\\.\\d*).*',
                                              coupon.find('.coupon-title').text()).group(1)
-                            save = re.match('.*?(\\d+).*?', coupon.find('.coupon-amount').text()).group(1)
+                            save = coupon.find('.coupon-amount').text().strip('¥ ')
 
                             scheme = (after, save)
 
@@ -210,10 +210,10 @@ class TaobaoBrowser:
                 for scheme in schemes:
                     good_scheme = (0, 1)
 
-                    if scheme.find('.bundle-hd'):
+                    if scheme.find('.bundle-hd .bd-content'):
                         matched = \
-                            re.match('.*?' + self._translate('每') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
-                                     scheme.find('.bundle-hd .bd-title').text())
+                            re.match('.*?' + self._translate('满') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
+                                     scheme.find('.bundle-hd .bd-content').text())
                         if matched:
                             good_scheme = (int(matched.group(2)), int(matched.group(1)))
 
@@ -226,7 +226,7 @@ class TaobaoBrowser:
                         if name_length and len(good_name) > name_length:
                             good_name = good_name[:name_length] + '... '
 
-                        good_pic = good.find('.item-pic img').attr('src')
+                        # good_pic = good.find('.item-pic img').attr('src')
 
                         good_prop = str()
                         props = good.find('.item-props .sku-line').items()
@@ -236,15 +236,31 @@ class TaobaoBrowser:
 
                         good_prop = good_prop.strip(', ')
 
-                        if good_prop:
-                            good_prop = ': ' + good_prop
-
                         good_price = float(good.find('.price-now').text().strip('￥'))
                         good_amount = int(good.find('.item-amount input').attr('data-now')) \
                             if good.find('.item-amount input') else int(good.find('.item-amount').text())   # if fixed
 
                         # TODO: How to get future price?
                         good_discounted_price = good_price
+                        if good.find('.item-info>.item-other-info>.promo-logos>.promo-logo'):
+                            base_page = self.browser.current_window_handle
+
+                            good_link = good.find('.item-info a.J_GoldReport').attr('href')
+                            self.browser.execute_script("window.open('https:" + good_link + "');")
+                            self.browser.switch_to.window(self.browser.window_handles[-1])
+
+                            for prop in self.browser.find_elements_by_css_selector('.tb-key dd a'):
+                                if prop.get_attribute('textContent').strip() in good_prop.split(', '):
+                                    self.browser.execute_script("arguments[0].click();", prop)
+
+                            good_discounted_price \
+                                = float(self.browser.find_element_by_css_selector('#J_ActivityPrice span').text)
+
+                            self.browser.close()
+                            self.browser.switch_to.window(base_page)
+
+                        if good_prop:
+                            good_prop = ': ' + good_prop
 
                         commodities[good_name + good_prop] = (good_price,
                                                               good_discounted_price,

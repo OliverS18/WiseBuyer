@@ -3,7 +3,7 @@ This file implements the crawler for parsing information from Taobao's cart page
 
 The crawler here is implemented based on shengqiangzhang's script
 (https://github.com/shengqiangzhang/examples-of-web-crawlers/blob/master/3.淘宝已买到的宝贝数据爬虫(已模拟登录)/taobao_buy_crawler.py)
-and Andy、Tao's implementation
+and Andy丶Tao's implementation
 (https://blog.csdn.net/tao15716645708/article/details/98870266)
 Much thanks to the authors.
 """
@@ -157,7 +157,7 @@ class TaobaoBrowser:
                                   '\033[1m[\033[32m{elapsed}\033[0m elapsed, '
                                   '\033[1;32m{remaining}\033[0m remain\033[1m]\033[0m') as bar:
             for shop in shops.items():
-                bar.update(1)
+                bar.update()
 
                 # parse shop name
                 shop_name = shop.find('.shop-info>a').text()
@@ -187,7 +187,7 @@ class TaobaoBrowser:
                         else:
                             after = re.match('.*?' + self._translate('满') + '(\\d+\\.\\d*).*',
                                              coupon.find('.coupon-title').text()).group(1)
-                            save = re.match('.*?(\\d+).*?', coupon.find('.coupon-amount').text()).group(1)
+                            save = coupon.find('.coupon-amount').text().strip('¥ ')
 
                             scheme = (after, save)
 
@@ -210,10 +210,10 @@ class TaobaoBrowser:
                 for scheme in schemes:
                     good_scheme = (0, 1)
 
-                    if scheme.find('.bundle-hd'):
+                    if scheme.find('.bundle-hd .bd-content'):
                         matched = \
-                            re.match('.*?' + self._translate('每') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
-                                     scheme.find('.bundle-hd .bd-title').text())
+                            re.match('.*?' + self._translate('满') + '(\\d+)' + self._translate('减') + '(\\d+).*?',
+                                     scheme.find('.bundle-hd .bd-content').text())
                         if matched:
                             good_scheme = (int(matched.group(2)), int(matched.group(1)))
 
@@ -226,7 +226,7 @@ class TaobaoBrowser:
                         if name_length and len(good_name) > name_length:
                             good_name = good_name[:name_length] + '... '
 
-                        good_pic = good.find('.item-pic img').attr('src')
+                        # good_pic = good.find('.item-pic img').attr('src')
 
                         good_prop = str()
                         props = good.find('.item-props .sku-line').items()
@@ -243,7 +243,7 @@ class TaobaoBrowser:
                         good_amount = int(good.find('.item-amount input').attr('data-now')) \
                             if good.find('.item-amount input') else int(good.find('.item-amount').text())   # if fixed
 
-                        # TODO: How to get future price?
+                        # TODO: Merge the future price acquiring logic into master branch
                         good_discounted_price = good_price
 
                         commodities[good_name + good_prop] = (good_price,

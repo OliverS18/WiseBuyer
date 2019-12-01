@@ -20,6 +20,10 @@
     </br></br>
 </div>
 
+# 📈 Trending
+
+WiseBuyer **for 12.12** has been pushed. Check [This branch](https://github.com/OliverS18/WiseBuyer/tree/12.12 "branch URL") for details.
+
 # Introduction
 
 When it comes to 11.11 or other e-commercial events, there are usually a lot of rules with great complexities, where customers have to do a hard math to manage their shoplist to acquire a relatively high discount. **Now WiseBuyer is here to provide an easy solution.** Just add your favorite goods to the cart and WiseBuyer will do all the rest work for you, providing a set of found sensible choices for your reference at the end.
@@ -30,7 +34,9 @@ When it comes to 11.11 or other e-commercial events, there are usually a lot of 
 
 # Requirements
 
-- #### Mac OS X
+- #### MacOS X
+
+- #### Chrome 78.0
 
 - #### Python 3.6+
 
@@ -81,15 +87,18 @@ The usage of supported arguments can be found by:
 
 - Current support *Taobao.com*/*Tmall.com* only.
 
-- WiseBuyer is still under development. Since the coupon element is not shown up on *Taobao.com* during current development, WiseBuyer is not guaranteed to acquire correct platform coupons. The issue will be fixed during the upcoming 12.12.
+- WiseBuyer is still under development.  
+~~Since the coupon element is not shown up on *Taobao.com* during current development, WiseBuyer is not guaranteed to acquire correct platform coupons. The issue will be fixed during the upcoming 12.12.~~  
+WiseBuyer is now able to acquire 12.12 coupons. See **branch 12.12**.
 
 # TODO
 
-- [ ] Check the coupon element when it is exposed during 12.12
+- [x] Check the coupon element when it is exposed during 12.12
 - [ ] Develop GUI
 - [ ] Code optimization
 - [ ] Support Chinese
 - [ ] Support Windows & test on Linux
+- [ ] Take postage cost into account
 
 Welcome pull request.
 
@@ -99,7 +108,11 @@ Welcome pull request.
 
 - [@tobegit3hub](https://github.com/tobegit3hub "tobegit3hub's personal page") for the great [ML tutorial](https://github.com/tobegit3hub/ml_implementation "Repository URL").
 
-- [hitrjj](https://me.csdn.net/u014636245 "hitrjj's blog") for the original implementation to [show an image in terminal](https://blog.csdn.net/u014636245/article/details/83661559, "Blog URL")
+- [hitrjj](https://me.csdn.net/u014636245 "hitrjj's blog") for the original implementation to [show an image in terminal](https://blog.csdn.net/u014636245/article/details/83661559 "Blog URL").
+
+- [@Shengqiang Zhang](https://github.com/shengqiangzhang "Shengqiang Zhang's personal page") for the great [crawler tutorial](https://github.com/shengqiangzhang/examples-of-web-crawlers "Repository URL").
+
+- [Andy丶Tao](https://me.csdn.net/tao15716645708 "Andy丶Tao's blog") for the inspiration of [login method](https://blog.csdn.net/tao15716645708/article/details/98870266 "Blog URL") on *Taobao.com*.
 
 &nbsp;  
 &nbsp;  
